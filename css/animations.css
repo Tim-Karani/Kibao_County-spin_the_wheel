@@ -1,0 +1,5 @@
+/* Reference wheel intentionally has no decorative glow or pulse. */
+*{
+    backface-visibility:hidden;
+    -webkit-font-smoothing:antialiased;
+}

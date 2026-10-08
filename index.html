@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#000000">
+    <title>Spin the Wheel | County Kibao</title>
+    <link rel="icon" type="image/png" href="assets/images/logo/kk.png">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+
+    <div id="loading-screen" aria-live="polite">
+        <div class="loader"></div>
+        <p>Preparing the Kibao wheel...</p>
+    </div>
+
+    <main class="app" aria-label="County Kibao Spin the Wheel game">
+
+        <section class="wheel-stage">
+
+            <div class="wheel-wrapper">
+                <!-- Fixed result pointer anchored directly to the wheel. -->
+                <div class="pointer" aria-hidden="true"></div>
+                <canvas id="wheelCanvas" aria-label="Spin the wheel"></canvas>
+            </div>
+
+            <button id="spinBtn" type="button" aria-label="Spin the wheel">
+                SPIN THE WHEEL
+            </button>
+
+        </section>
+
+    </main>
+
+    <div class="popup-overlay hidden" id="winnerPopup">
+        <div class="popup-card" role="dialog" aria-modal="true" aria-label="Spin result">
+            <p class="popup-message" id="popupMessage"></p>
+            <div class="popup-buttons">
+                <button id="closePopup" type="button">OOPS</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/storage.js"></script>
+    <script src="js/prizes.js"></script>
+    <script src="js/wheel.js"></script>
+    <script src="js/popup.js"></script>
+    <script src="js/sounds.js"></script>
+    <script src="js/analytics.js"></script>
+    <script src="js/app.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,557 @@
+/* ==========================================================
+   SPIN2WIN - KIBAO EDITION
+   admin.css
+========================================================== */
+
+/* ==========================================================
+   ROOT
+========================================================== */
+
+:root{
+
+    --primary:#ef3e42;
+    --primary-dark:#c62828;
+
+    --secondary:#f6b100;
+
+    --success:#2e7d32;
+    --danger:#d32f2f;
+
+    --white:#ffffff;
+    --light:#f7f8fc;
+    --border:#e5e7eb;
+
+    --text:#374151;
+    --text-light:#6b7280;
+
+    --shadow:0 10px 30px rgba(0,0,0,.08);
+
+    --radius:18px;
+
+}
+
+/* ==========================================================
+   RESET
+========================================================== */
+
+*{
+
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+
+}
+
+body{
+
+    font-family:"Poppins",sans-serif;
+
+    background:#f4f6fb;
+
+    color:var(--text);
+
+}
+
+/* ==========================================================
+   HEADER
+========================================================== */
+
+.admin-header{
+
+    height:80px;
+
+    background:#ffffff;
+
+    box-shadow:var(--shadow);
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    padding:0 40px;
+
+    position:sticky;
+
+    top:0;
+
+    z-index:1000;
+
+}
+
+.header-left{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:18px;
+
+}
+
+.logo{
+
+    width:55px;
+
+    height:55px;
+
+    object-fit:contain;
+
+}
+
+.header-left h1{
+
+    font-size:24px;
+
+    font-weight:700;
+
+}
+
+.header-left span{
+
+    color:var(--text-light);
+
+    font-size:14px;
+
+}
+
+.header-right button{
+
+    border:none;
+
+    cursor:pointer;
+
+    background:var(--primary);
+
+    color:#fff;
+
+    padding:12px 28px;
+
+    border-radius:10px;
+
+    font-weight:600;
+
+    transition:.3s;
+
+}
+
+.header-right button:hover{
+
+    background:var(--primary-dark);
+
+}
+
+/* ==========================================================
+   MAIN
+========================================================== */
+
+.dashboard{
+
+    max-width:1400px;
+
+    margin:40px auto;
+
+    padding:0 30px;
+
+}
+
+/* ==========================================================
+   STATS
+========================================================== */
+
+.stats-grid{
+
+    display:grid;
+
+    grid-template-columns:repeat(4,1fr);
+
+    gap:25px;
+
+    margin-bottom:35px;
+
+}
+
+.stat-card{
+
+    background:#fff;
+
+    border-radius:var(--radius);
+
+    padding:30px;
+
+    box-shadow:var(--shadow);
+
+    transition:.3s;
+
+}
+
+.stat-card:hover{
+
+    transform:translateY(-5px);
+
+}
+
+.stat-card h3{
+
+    font-size:15px;
+
+    color:var(--text-light);
+
+    margin-bottom:15px;
+
+}
+
+.stat-card h2{
+
+    font-size:38px;
+
+    color:var(--primary);
+
+}
+
+/* ==========================================================
+   CARDS
+========================================================== */
+
+.dashboard-card{
+
+    background:#fff;
+
+    border-radius:var(--radius);
+
+    padding:30px;
+
+    margin-bottom:35px;
+
+    box-shadow:var(--shadow);
+
+}
+
+.card-header{
+
+    margin-bottom:25px;
+
+}
+
+.card-header h2{
+
+    font-size:24px;
+
+    font-weight:700;
+
+}
+
+/* ==========================================================
+   PRIZE CONTAINER
+========================================================== */
+
+#prizeContainer{
+
+    display:grid;
+
+    grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+
+    gap:20px;
+
+}
+
+/* ==========================================================
+   SAMPLE PRIZE CARD
+========================================================== */
+
+.prize-card{
+
+    border:1px solid var(--border);
+
+    border-radius:15px;
+
+    padding:20px;
+
+    background:#fafafa;
+
+}
+
+.prize-card label{
+
+    display:block;
+
+    font-size:13px;
+
+    font-weight:600;
+
+    margin-bottom:6px;
+
+    margin-top:12px;
+
+}
+
+.prize-card input,
+
+.prize-card select{
+
+    width:100%;
+
+    padding:10px 12px;
+
+    border:1px solid var(--border);
+
+    border-radius:10px;
+
+    font-size:14px;
+
+    outline:none;
+
+}
+
+.prize-card input:focus{
+
+    border-color:var(--primary);
+
+}
+
+/* ==========================================================
+   BUTTONS
+========================================================== */
+
+.card-actions{
+
+    display:flex;
+
+    gap:15px;
+
+    margin-top:25px;
+
+}
+
+button{
+
+    border:none;
+
+    cursor:pointer;
+
+    padding:13px 24px;
+
+    border-radius:10px;
+
+    font-family:inherit;
+
+    font-weight:600;
+
+    transition:.3s;
+
+}
+
+#addPrizeBtn{
+
+    background:var(--secondary);
+
+    color:#fff;
+
+}
+
+#savePrizesBtn{
+
+    background:var(--primary);
+
+    color:#fff;
+
+}
+
+#addPrizeBtn:hover{
+
+    filter:brightness(.95);
+
+}
+
+#savePrizesBtn:hover{
+
+    background:var(--primary-dark);
+
+}
+
+/* ==========================================================
+   TABLE
+========================================================== */
+
+.table-wrapper{
+
+    overflow-x:auto;
+
+}
+
+table{
+
+    width:100%;
+
+    border-collapse:collapse;
+
+}
+
+thead{
+
+    background:#fafafa;
+
+}
+
+th{
+
+    text-align:left;
+
+    padding:16px;
+
+    font-size:14px;
+
+    color:var(--text-light);
+
+}
+
+td{
+
+    padding:16px;
+
+    border-top:1px solid var(--border);
+
+    font-size:14px;
+
+}
+
+/* ==========================================================
+   ACTIONS
+========================================================== */
+
+.actions-grid{
+
+    display:flex;
+
+    gap:20px;
+
+    flex-wrap:wrap;
+
+}
+
+#exportAnalyticsBtn{
+
+    background:#1976d2;
+
+    color:#fff;
+
+}
+
+#resetAnalyticsBtn{
+
+    background:#ef6c00;
+
+    color:#fff;
+
+}
+
+#resetPrizesBtn{
+
+    background:#d32f2f;
+
+    color:#fff;
+
+}
+
+.actions-grid button:hover{
+
+    transform:translateY(-2px);
+
+}
+
+/* ==========================================================
+   FOOTER
+========================================================== */
+
+footer{
+
+    padding:25px;
+
+    text-align:center;
+
+    color:var(--text-light);
+
+}
+
+/* ==========================================================
+   RESPONSIVE
+========================================================== */
+
+@media(max-width:1100px){
+
+    .stats-grid{
+
+        grid-template-columns:repeat(2,1fr);
+
+    }
+
+}
+
+@media(max-width:768px){
+
+    .admin-header{
+
+        flex-direction:column;
+
+        height:auto;
+
+        gap:15px;
+
+        padding:20px;
+
+    }
+
+    .dashboard{
+
+        padding:20px;
+
+    }
+
+    .stats-grid{
+
+        grid-template-columns:1fr;
+
+    }
+
+    .card-actions,
+
+    .actions-grid{
+
+        flex-direction:column;
+
+    }
+
+    button{
+
+        width:100%;
+
+    }
+
+}
+
+@media(max-width:500px){
+
+    .header-left{
+
+        flex-direction:column;
+
+        text-align:center;
+
+    }
+
+    .logo{
+
+        width:70px;
+
+        height:70px;
+
+    }
+
+    .card-header h2{
+
+        font-size:20px;
+
+    }
+
+}
