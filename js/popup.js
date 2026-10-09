@@ -41,7 +41,7 @@ function showWinnerPopup(prize){
 
     if(prize.type === "win"){
         popupMessage.textContent =
-            `Congratulations! You have won a ${prize.name}. Please visit the Kibao activation desk to collect your reward.`;
+            `Congratulations!`;
         closeButton.textContent = "CONGRATULATIONS";
         popupOverlay.classList.remove("result-loss");
         popupOverlay.classList.add("result-win");
