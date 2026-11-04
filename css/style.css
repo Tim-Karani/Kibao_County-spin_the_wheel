@@ -135,6 +135,40 @@ body{
 }
 
 
+/* Sound on/off button, top-right corner. */
+#soundToggle{
+    position:fixed;
+    top:14px;
+    right:14px;
+    z-index:60;
+    width:44px;
+    height:44px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:0;
+    border:2px solid rgba(255,255,255,.7);
+    border-radius:50%;
+    background:rgba(0,0,0,.6);
+    color:#ffffff;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+}
+
+#soundToggle svg{
+    width:22px;
+    height:22px;
+}
+
+#soundToggle .icon-off,
+#soundToggle[aria-pressed="true"] .icon-on{
+    display:none;
+}
+
+#soundToggle[aria-pressed="true"] .icon-off{
+    display:block;
+}
+
 /* ==========================================================
    LOADING
 ========================================================== */

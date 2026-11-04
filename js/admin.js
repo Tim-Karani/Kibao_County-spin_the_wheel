@@ -1,1652 +1,620 @@
 /* ==========================================================
-   SPIN2WIN - KIBAO EDITION
+   SPIN2WIN - COUNTY KIBAO
    admin.js
 
-   PART 1
-   INITIALIZATION
-   DASHBOARD
+   Everything here reads and writes the shared state on the
+   Netlify server (/api/admin). The password is checked by the
+   server on every request; it is kept only in this browser tab
+   (sessionStorage) and is forgotten when the tab is closed.
 ========================================================== */
 
 "use strict";
 
-/* ==========================================================
-   DOM
-========================================================== */
-
-let totalSpinsElement = null;
-
-let totalWinsElement = null;
-
-let totalLossesElement = null;
-
-let totalRetriesElement = null;
-
-let refreshButton = null;
-
-/* ==========================================================
-   START
-========================================================== */
-
-document.addEventListener(
-
-    "DOMContentLoaded",
-
-    initializeAdmin
-
-);
-
-/* ==========================================================
-   INITIALIZE
-========================================================== */
-
-function initializeAdmin(){
-
-    console.log(
-
-        "Starting Spin2Win Admin..."
-
-    );
-
-    cacheDOM();
-
-    bindEvents();
-
-    loadDashboard();
-
-}
-
-/* ==========================================================
-   CACHE DOM
-========================================================== */
-
-function cacheDOM(){
-
-    totalSpinsElement =
-
-        document.getElementById(
-
-            "totalSpins"
-
-        );
-
-    totalWinsElement =
-
-        document.getElementById(
-
-            "totalWins"
-
-        );
-
-    totalLossesElement =
-
-        document.getElementById(
-
-            "totalLosses"
-
-        );
-
-    totalRetriesElement =
-
-        document.getElementById(
-
-            "totalRetries"
-
-        );
-
-    refreshButton =
-
-        document.getElementById(
-
-            "refreshDashboard"
-
-        );
-
-}
-
-/* ==========================================================
-   EVENTS
-========================================================== */
-
-function bindEvents(){
-
-    if(refreshButton){
-
-        refreshButton.addEventListener(
-
-            "click",
-
-            refreshDashboard
-
-        );
-
-    }
-
-}
-
-/* ==========================================================
-   LOAD DASHBOARD
-========================================================== */
-
-function loadDashboard(){
-
-    if(typeof getAnalyticsSummary !== "function"){
-
-        console.error(
-
-            "analytics.js not loaded."
-
-        );
-
-        return;
-
-    }
-
-    const summary =
-
-        getAnalyticsSummary();
-
-    updateDashboard(
-
-        summary
-
-    );
-
-}
-
-/* ==========================================================
-   UPDATE DASHBOARD
-========================================================== */
-
-function updateDashboard(summary){
-
-    if(!summary){
-
-        return;
-
-    }
-
-    totalSpinsElement.textContent =
-
-        summary.totalSpins;
-
-    totalWinsElement.textContent =
-
-        summary.totalWins;
-
-    totalLossesElement.textContent =
-
-        summary.totalLosses;
-
-    totalRetriesElement.textContent =
-
-        summary.totalRetries;
-
-}
-
-/* ==========================================================
-   REFRESH
-========================================================== */
-
-function refreshDashboard(){
-
-    loadDashboard();
-
-    console.log(
-
-        "Dashboard refreshed."
-
-    );
-
-}
-
-/* ==========================================================
-   SIMPLE NOTIFICATION
-========================================================== */
-
-function notify(message){
-
-    console.log(
-
-        message
-
-    );
-
-}
-
-/* ==========================================================
-   EXPORTS
-========================================================== */
-
-window.refreshDashboard =
-
-    refreshDashboard;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* ==========================================================
-   PART 2
-   PRIZE MANAGEMENT
-========================================================== */
-
-/* ==========================================================
-   DOM
-========================================================== */
-
-let prizeContainer = null;
-
-let addPrizeButton = null;
-
-let savePrizesButton = null;
-
-/* ==========================================================
-   CACHE EXTRA DOM
-========================================================== */
-
-const previousCacheDOM = cacheDOM;
-
-cacheDOM = function(){
-
-    previousCacheDOM();
-
-    prizeContainer =
-
-        document.getElementById(
-
-            "prizeContainer"
-
-        );
-
-    addPrizeButton =
-
-        document.getElementById(
-
-            "addPrizeBtn"
-
-        );
-
-    savePrizesButton =
-
-        document.getElementById(
-
-            "savePrizesBtn"
-
-        );
-
+const ADMIN_ENDPOINT = "/api/admin";
+const PASSWORD_KEY = "kibao_admin_password";
+const AUTO_REFRESH_MS = 15000;
+const LOW_STOCK = 5;
+
+const SLICE_COLORS = {
+    1: "#FFFFFF", 2: "#771030", 3: "#DB1212", 4: "#F3BB17",
+    5: "#FFFFFF", 6: "#771030", 7: "#DB1212", 8: "#F3BB17"
 };
 
-/* ==========================================================
-   EXTEND EVENTS
-========================================================== */
+let password = "";
+let currentState = null;
+let formDirty = false;
+let refreshTimer = null;
+let busy = false;
 
-const previousBindEvents = bindEvents;
+const $ = id => document.getElementById(id);
 
-bindEvents = function(){
+document.addEventListener("DOMContentLoaded", init);
 
-    previousBindEvents();
+function init(){
 
-    if(addPrizeButton){
+    $("loginForm").addEventListener("submit", onLogin);
+    $("logoutBtn").addEventListener("click", logout);
+    $("refreshBtn").addEventListener("click", () => refresh(true));
+    $("saveBtn").addEventListener("click", savePrizes);
+    $("discardBtn").addEventListener("click", () => { formDirty = false; renderPrizes(); });
+    $("historySearch").addEventListener("input", renderHistory);
+    $("historyFilter").addEventListener("change", renderHistory);
+    $("exportBtn").addEventListener("click", exportCsv);
+    $("resetStatsBtn").addEventListener("click", resetStats);
+    $("restoreOddsBtn").addEventListener("click", restoreOdds);
 
-        addPrizeButton.addEventListener(
-
-            "click",
-
-            addPrize
-
-        );
-
-    }
-
-    if(savePrizesButton){
-
-        savePrizesButton.addEventListener(
-
-            "click",
-
-            savePrizeConfiguration
-
-        );
-
-    }
-
-};
-
-/* ==========================================================
-   EXTEND INITIALIZE
-========================================================== */
-
-const previousLoadDashboard = loadDashboard;
-
-loadDashboard = function(){
-
-    previousLoadDashboard();
-
-    renderPrizeConfiguration();
-
-};
-
-/* ==========================================================
-   RENDER PRIZES
-========================================================== */
-
-function renderPrizeConfiguration(){
-
-    if(!prizeContainer){
-
-        return;
-
-    }
-
-    prizeContainer.innerHTML = "";
-
-    const prizes = loadPrizes();
-
-    prizes.forEach(function(prize,index){
-
-        prizeContainer.appendChild(
-
-            createPrizeCard(
-
-                prize,
-
-                index
-
-            )
-
-        );
-
+    document.addEventListener("visibilitychange", () => {
+        if(!document.hidden && password){
+            refresh(false);
+        }
     });
 
+    try{
+        password = sessionStorage.getItem(PASSWORD_KEY) || "";
+    }
+    catch{
+        password = "";
+    }
+
+    if(password){
+        login(password, true);
+    }
+    else{
+        $("passwordInput").focus();
+    }
 }
 
-/* ==========================================================
-   CREATE CARD
-========================================================== */
-
-function createPrizeCard(prize,index){
-
-    const card =
-
-        document.createElement(
-
-            "div"
-
-        );
-
-    card.className =
-
-        "prize-card";
-
-    card.innerHTML = `
-
-        <label>
-
-            Prize Name
-
-        </label>
-
-        <input
-
-            type="text"
-
-            class="prize-name"
-
-            value="${prize.name}"
-
-        >
-
-        <label>
-
-            Chance (%)
-
-        </label>
-
-        <input
-
-            type="number"
-
-            class="prize-chance"
-
-            value="${prize.chance}"
-
-            min="0"
-
-            max="100"
-
-        >
-
-        <label>
-
-            Type
-
-        </label>
-
-        <select
-
-            class="prize-type"
-
-        >
-
-            <option value="win"
-
-                ${prize.type==="win"?"selected":""}
-
-            >
-
-                Win
-
-            </option>
-
-            <option value="lose"
-
-                ${prize.type==="lose"?"selected":""}
-
-            >
-
-                Lose
-
-            </option>
-
-            <option value="retry"
-
-                ${prize.type==="retry"?"selected":""}
-
-            >
-
-                Retry
-
-            </option>
-
-        </select>
-
-        <label>
-
-            Slice Colour
-
-        </label>
-
-        <input
-
-            type="color"
-
-            class="prize-color"
-
-            value="${prize.color}"
-
-        >
-
-        <label>
-
-            Text Colour
-
-        </label>
-
-        <input
-
-            type="color"
-
-            class="prize-text-color"
-
-            value="${prize.textColor}"
-
-        >
-
-        <label>
-
-            Image Path
-
-        </label>
-
-        <input
-
-            type="text"
-
-            class="prize-image"
-
-            value="${prize.image}"
-
-        >
-
-        <label>
-
-            Enabled
-
-        </label>
-
-        <input
-
-            type="checkbox"
-
-            class="prize-enabled"
-
-            ${prize.enabled ? "checked" : ""}
-
-        >
-
-    `;
-
-    return card;
-
-}
-
-/* ==========================================================
-   ADD PRIZE
-========================================================== */
-
-function addPrize(){
-
-    const prizes =
-
-        loadPrizes();
-
-    prizes.push({
-
-        id:Date.now(),
-
-        name:"New Prize",
-
-        chance:10,
-
-        color:"#2196f3",
-
-        textColor:"#ffffff",
-
-        image:"",
-
-        enabled:true,
-
-        type:"win"
-
+/* ---------------- Server calls ---------------- */
+
+async function api(action, extra = {}){
+
+    const response = await fetch(ADMIN_ENDPOINT, {
+        method: "POST",
+        headers: {
+            "content-type": "application/json",
+            "x-admin-password": password
+        },
+        body: JSON.stringify({ action, ...extra }),
+        cache: "no-store"
     });
 
-    savePrizes(
+    let data = {};
 
-        prizes
+    try{
+        data = await response.json();
+    }
+    catch{
+        data = {};
+    }
 
-    );
+    if(response.status === 401){
+        const error = new Error(data.error || "Wrong password.");
+        error.unauthorized = true;
+        throw error;
+    }
 
-    renderPrizeConfiguration();
+    if(!response.ok){
+        throw new Error(data.error || `Server error (${response.status}).`);
+    }
 
+    return data;
 }
 
-/* ==========================================================
-   SAVE PRIZES
-========================================================== */
+/* ---------------- Login ---------------- */
 
-function savePrizeConfiguration(){
+async function onLogin(event){
 
-    const cards =
+    event.preventDefault();
 
-        document.querySelectorAll(
+    const value = $("passwordInput").value;
 
-            ".prize-card"
-
-        );
-
-    const prizes = [];
-
-    cards.forEach(function(card,index){
-
-        prizes.push({
-
-            id:Number(card.dataset.id),
-
-            name:
-
-                card.querySelector(
-
-                    ".prize-name"
-
-                ).value,
-
-            chance:Number(
-
-                card.querySelector(
-
-                    ".prize-chance"
-
-                ).value
-
-            ),
-
-            type:
-
-                card.querySelector(
-
-                    ".prize-type"
-
-                ).value,
-
-            color:
-
-                card.querySelector(
-
-                    ".prize-color"
-
-                ).value,
-
-            textColor:
-
-                card.querySelector(
-
-                    ".prize-text-color"
-
-                ).value,
-
-            image:
-
-                card.querySelector(
-
-                    ".prize-image"
-
-                ).value,
-
-            enabled:
-
-                card.querySelector(
-
-                    ".prize-enabled"
-
-                ).checked
-
-        });
-
-    });
-
-    savePrizes(
-
-        prizes
-
-    );
-
-    notify(
-
-        "Prize configuration saved."
-
-    );
-
-}
-
-
-
-
-
-/* ==========================================================
-   PART 3
-   ANALYTICS
-   HISTORY
-   ACTIONS
-========================================================== */
-
-/* ==========================================================
-   DOM
-========================================================== */
-
-let historyTable = null;
-
-let exportAnalyticsButton = null;
-
-let resetAnalyticsButton = null;
-
-let resetPrizesButton = null;
-
-/* ==========================================================
-   EXTEND CACHE DOM
-========================================================== */
-
-const previousCacheDOMPart2 = cacheDOM;
-
-cacheDOM = function(){
-
-    previousCacheDOMPart2();
-
-    historyTable =
-
-        document.getElementById(
-
-            "historyTable"
-
-        );
-
-    exportAnalyticsButton =
-
-        document.getElementById(
-
-            "exportAnalyticsBtn"
-
-        );
-
-    resetAnalyticsButton =
-
-        document.getElementById(
-
-            "resetAnalyticsBtn"
-
-        );
-
-    resetPrizesButton =
-
-        document.getElementById(
-
-            "resetPrizesBtn"
-
-        );
-
-};
-
-/* ==========================================================
-   EXTEND EVENTS
-========================================================== */
-
-const previousBindEventsPart2 = bindEvents;
-
-bindEvents = function(){
-
-    previousBindEventsPart2();
-
-    if(exportAnalyticsButton){
-
-        exportAnalyticsButton.addEventListener(
-
-            "click",
-
-            exportAnalyticsData
-
-        );
-
-    }
-
-    if(resetAnalyticsButton){
-
-        resetAnalyticsButton.addEventListener(
-
-            "click",
-
-            clearAnalytics
-
-        );
-
-    }
-
-    if(resetPrizesButton){
-
-        resetPrizesButton.addEventListener(
-
-            "click",
-
-            restoreDefaultPrizes
-
-        );
-
-    }
-
-};
-
-/* ==========================================================
-   EXTEND DASHBOARD
-========================================================== */
-
-const previousLoadDashboardPart2 = loadDashboard;
-
-loadDashboard = function(){
-
-    previousLoadDashboardPart2();
-
-    loadHistoryTable();
-
-};
-
-/* ==========================================================
-   LOAD HISTORY
-========================================================== */
-
-function loadHistoryTable(){
-
-    if(!historyTable){
-
+    if(!value){
         return;
-
     }
 
-    historyTable.innerHTML = "";
-
-    if(typeof getSpinHistory !== "function"){
-
-        historyTable.innerHTML =
-
-            "<tr><td colspan='3'>History unavailable.</td></tr>";
-
-        return;
-
-    }
-
-    const history =
-
-        getSpinHistory();
-
-    if(history.length === 0){
-
-        historyTable.innerHTML =
-
-            "<tr><td colspan='3'>No spins recorded.</td></tr>";
-
-        return;
-
-    }
-
-    history.forEach(function(item){
-
-        const row =
-
-            document.createElement(
-
-                "tr"
-
-            );
-
-        row.innerHTML = `
-
-            <td>
-
-                ${formatDate(item.timestamp)}
-
-            </td>
-
-            <td>
-
-                ${item.prize}
-
-            </td>
-
-            <td>
-
-                ${formatResult(item.type)}
-
-            </td>
-
-        `;
-
-        historyTable.appendChild(
-
-            row
-
-        );
-
-    });
-
+    await login(value, false);
 }
 
-/* ==========================================================
-   FORMAT DATE
-========================================================== */
-
-function formatDate(timestamp){
-
-    const date =
-
-        new Date(timestamp);
-
-    return date.toLocaleString();
-
-}
-
-/* ==========================================================
-   FORMAT RESULT
-========================================================== */
-
-function formatResult(type){
-
-    switch(type){
-
-        case "win":
-
-            return "🏆 Win";
-
-        case "lose":
-
-            return "❌ Lose";
-
-        case "retry":
-
-            return "🔄 Retry";
-
-        default:
-
-            return type;
-
-    }
-
-}
-
-/* ==========================================================
-   EXPORT
-========================================================== */
-
-function exportAnalyticsData(){
-
-    if(typeof exportAnalytics === "function"){
-
-        exportAnalytics();
-
-        notify(
-
-            "Analytics exported."
-
-        );
-
-    }
-
-}
-
-/* ==========================================================
-   RESET ANALYTICS
-========================================================== */
-
-function clearAnalytics(){
-
-    const confirmed = confirm(
-
-        "Reset all analytics?"
-
-    );
-
-    if(!confirmed){
-
-        return;
-
-    }
-
-    if(typeof resetAnalytics === "function"){
-
-        resetAnalytics();
-
-    }
-
-    loadDashboard();
-
-    notify(
-
-        "Analytics reset."
-
-    );
-
-}
-
-/* ==========================================================
-   RESET PRIZES
-========================================================== */
-
-function restoreDefaultPrizes(){
-
-    const confirmed = confirm(
-
-        "Restore default prizes?"
-
-    );
-
-    if(!confirmed){
-
-        return;
-
-    }
-
-    if(typeof resetPrizes === "function"){
-
-        resetPrizes();
-
-    }
-
-    loadDashboard();
-
-    notify(
-
-        "Default prizes restored."
-
-    );
-
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* ==========================================================
-   PART 4
-   VALIDATION
-   STABLE IDS
-   IMPROVED SAVE
-========================================================== */
-
-/* ==========================================================
-   REPLACE CREATE PRIZE CARD
-========================================================== */
-
-createPrizeCard = function(prize,index){
-
-    const card = document.createElement("div");
-
-    card.className = "prize-card";
-
-    /*
-    ---------------------------------------
-    Preserve original prize ID
-    ---------------------------------------
-    */
-
-    card.dataset.id = prize.id;
-
-    card.innerHTML = `
-
-        <label>
-
-            Prize Name
-
-        </label>
-
-        <input
-            type="text"
-            class="prize-name"
-            value="${prize.name}"
-        >
-
-        <label>
-
-            Chance (%)
-
-        </label>
-
-        <input
-            type="number"
-            class="prize-chance"
-            value="${prize.chance}"
-            min="0"
-            max="100"
-        >
-
-        <label>
-
-            Prize Type
-
-        </label>
-
-        <select
-            class="prize-type"
-        >
-
-            <option value="win"
-                ${prize.type==="win"?"selected":""}>
-                Win
-            </option>
-
-            <option value="lose"
-                ${prize.type==="lose"?"selected":""}>
-                Lose
-            </option>
-
-            <option value="retry"
-                ${prize.type==="retry"?"selected":""}>
-                Retry
-            </option>
-
-        </select>
-
-        <label>
-
-            Slice Colour
-
-        </label>
-
-        <input
-            type="color"
-            class="prize-color"
-            value="${prize.color}"
-        >
-
-        <label>
-
-            Text Colour
-
-        </label>
-
-        <input
-            type="color"
-            class="prize-text-color"
-            value="${prize.textColor}"
-        >
-
-        <label>
-
-            Image Path
-
-        </label>
-
-        <input
-            type="text"
-            class="prize-image"
-            value="${prize.image}"
-        >
-
-        <label>
-
-            Enabled
-
-        </label>
-
-        <input
-            type="checkbox"
-            class="prize-enabled"
-            ${prize.enabled ? "checked" : ""}
-        >
-
-    `;
-
-    return card;
-
-};
-
-/* ==========================================================
-   VALIDATE PRIZES
-========================================================== */
-
-function validatePrizes(prizes){
-
-    let totalChance = 0;
-
-    let enabledCount = 0;
-
-    for(const prize of prizes){
-
-        if(prize.enabled){
-
-            enabledCount++;
-
-            totalChance += prize.chance;
-
+async function login(value, silent){
+
+    password = value;
+    $("loginBtn").disabled = true;
+    $("loginError").textContent = "";
+
+    try{
+        const data = await api("login");
+
+        try{
+            sessionStorage.setItem(PASSWORD_KEY, password);
+        }
+        catch{
+            /* Tab will just ask again after a reload. */
         }
 
-        if(prize.name.trim() === ""){
+        $("loginView").classList.add("hidden");
+        $("dashboardView").classList.remove("hidden");
+        $("passwordInput").value = "";
 
-            alert(
-
-                "Every prize must have a name."
-
-            );
-
-            return false;
-
+        applyState(data.state, true);
+        startAutoRefresh();
+    }
+    catch(error){
+        password = "";
+        clearStoredPassword();
+        if(!silent){
+            $("loginError").textContent = error.unauthorized
+                ? "Wrong password. Please try again."
+                : error.message;
         }
-
-        if(prize.chance < 0){
-
-            alert(
-
-                "Chance cannot be negative."
-
-            );
-
-            return false;
-
-        }
-
     }
-
-    if(enabledCount === 0){
-
-        alert(
-
-            "Enable at least one prize."
-
-        );
-
-        return false;
-
+    finally{
+        $("loginBtn").disabled = false;
     }
-
-    if(totalChance !== 100){
-
-        alert(
-
-            "Total enabled prize probability must equal 100%.\n\nCurrent Total = " +
-
-            totalChance +
-
-            "%"
-
-        );
-
-        return false;
-
-    }
-
-    return true;
-
 }
 
-/* ==========================================================
-   IMPROVED SAVE
-========================================================== */
-
-savePrizeConfiguration = function(){
-
-    const cards =
-
-        document.querySelectorAll(
-
-            ".prize-card"
-
-        );
-
-    const prizes = [];
-
-    cards.forEach(function(card){
-
-        prizes.push({
-
-            id:Number(
-
-                card.dataset.id
-
-            ),
-
-            name:
-
-                card.querySelector(
-
-                    ".prize-name"
-
-                ).value.trim(),
-
-            chance:Number(
-
-                card.querySelector(
-
-                    ".prize-chance"
-
-                ).value
-
-            ),
-
-            type:
-
-                card.querySelector(
-
-                    ".prize-type"
-
-                ).value,
-
-            color:
-
-                card.querySelector(
-
-                    ".prize-color"
-
-                ).value,
-
-            textColor:
-
-                card.querySelector(
-
-                    ".prize-text-color"
-
-                ).value,
-
-            image:
-
-                card.querySelector(
-
-                    ".prize-image"
-
-                ).value.trim(),
-
-            enabled:
-
-                card.querySelector(
-
-                    ".prize-enabled"
-
-                ).checked
-
-        });
-
-    });
-
-    if(
-
-        !validatePrizes(
-
-            prizes
-
-        )
-
-    ){
-
-        return;
-
-    }
-
-    savePrizes(
-
-        prizes
-
-    );
-
-    loadDashboard();
-
-    notify(
-
-        "Prize configuration saved successfully."
-
-    );
-
-};
-
-/* ==========================================================
-   BETTER NOTIFICATION
-========================================================== */
-
-notify = function(message){
-
-    console.log(
-
-        "✔",
-
-        message
-
-    );
-
-};
-
-/* ==========================================================
-   AUTO REFRESH
-========================================================== */
-
-window.addEventListener(
-
-    "storage",
-
-    function(){
-
-        loadDashboard();
-
-    }
-
-);
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* ==========================================================
-   PART 5
-   FINAL UTILITIES
-   DASHBOARD POLISH
-========================================================== */
-
-/* ==========================================================
-   HISTORY SEARCH
-========================================================== */
-
-function searchHistory(keyword){
-
-    if(typeof getSpinHistory !== "function"){
-
-        return;
-
-    }
-
-    const history = getSpinHistory();
-
-    const filtered = history.filter(function(item){
-
-        return (
-
-            item.prize.toLowerCase().includes(
-
-                keyword.toLowerCase()
-
-            ) ||
-
-            item.type.toLowerCase().includes(
-
-                keyword.toLowerCase()
-
-            )
-
-        );
-
-    });
-
-    renderFilteredHistory(filtered);
-
+function logout(){
+    password = "";
+    currentState = null;
+    formDirty = false;
+    clearStoredPassword();
+    stopAutoRefresh();
+    $("dashboardView").classList.add("hidden");
+    $("loginView").classList.remove("hidden");
+    $("passwordInput").focus();
 }
 
-/* ==========================================================
-   RENDER FILTERED HISTORY
-========================================================== */
+function clearStoredPassword(){
+    try{
+        sessionStorage.removeItem(PASSWORD_KEY);
+    }
+    catch{
+        /* ignore */
+    }
+}
 
-function renderFilteredHistory(history){
-
-    if(!historyTable){
-
+function handleError(error){
+    if(error.unauthorized){
+        logout();
+        $("loginError").textContent = "Your session has ended. Please log in again.";
         return;
+    }
+    toast(error.message, true);
+}
 
+/* ---------------- Refresh ---------------- */
+
+function startAutoRefresh(){
+    stopAutoRefresh();
+    refreshTimer = setInterval(() => {
+        if(!document.hidden){
+            refresh(false);
+        }
+    }, AUTO_REFRESH_MS);
+}
+
+function stopAutoRefresh(){
+    if(refreshTimer){
+        clearInterval(refreshTimer);
+        refreshTimer = null;
+    }
+}
+
+async function refresh(manual){
+
+    if(busy){
+        return;
     }
 
-    historyTable.innerHTML = "";
+    try{
+        const data = await api("state");
+        applyState(data.state, false);
+        if(manual){
+            toast(formDirty ? "Updated. Your unsaved edits were kept." : "Updated.");
+        }
+    }
+    catch(error){
+        if(manual || error.unauthorized){
+            handleError(error);
+        }
+    }
+}
 
-    if(history.length === 0){
+function applyState(state, forceForm){
 
-        historyTable.innerHTML =
+    currentState = state;
 
-            "<tr><td colspan='3'>No matching records.</td></tr>";
-
-        return;
-
+    if(forceForm){
+        formDirty = false;
     }
 
-    history.forEach(function(item){
+    renderStats();
+    renderPrizes();
+    renderHistory();
+
+    $("lastUpdated").textContent = "Updated " + new Date().toLocaleTimeString();
+}
+
+/* ---------------- Stats ---------------- */
+
+function renderStats(){
+
+    const stats = currentState.stats;
+    const spins = stats.totalSpins || 0;
+
+    $("statSpins").textContent = formatNumber(spins);
+    $("statWins").textContent = formatNumber(stats.totalWins || 0);
+    $("statLosses").textContent = formatNumber(stats.totalLosses || 0);
+    $("statRate").textContent = spins ? formatPercent((stats.totalWins / spins) * 100) : "–";
+
+    const target = currentState.prizes
+        .filter(p => p.type === "win")
+        .reduce((sum, p) => sum + p.chance, 0);
+
+    $("statRateTarget").textContent = `Set odds: ${formatPercent(target)}`;
+}
+
+/* ---------------- Prize table ---------------- */
+
+function renderPrizes(){
+
+    const body = $("prizeRows");
+
+    if(formDirty && body.children.length){
+        updateLiveCells();
+        return;
+    }
+
+    body.innerHTML = "";
+
+    currentState.prizes.forEach(prize => {
 
         const row = document.createElement("tr");
+        row.dataset.slot = prize.designSlot;
+
+        const isWin = prize.type === "win";
+        const stockValue = prize.stock === null ? "" : prize.stock;
 
         row.innerHTML = `
-
             <td>
-
-                ${formatDate(item.timestamp)}
-
+                <div class="slice-cell">
+                    <span class="slice-swatch" style="background:${SLICE_COLORS[prize.designSlot]}"></span>
+                    <div>
+                        <div><strong>${escapeHtml(prize.name)}</strong></div>
+                        <div class="slice-num">Slice ${prize.designSlot}</div>
+                    </div>
+                </div>
             </td>
-
             <td>
-
-                ${item.prize}
-
+                <input type="number" class="chance-input" min="0" max="100" step="0.01"
+                       value="${prize.chance}" data-original="${prize.chance}"
+                       aria-label="${escapeHtml(prize.name)} chance (slice ${prize.designSlot})">
             </td>
-
             <td>
-
-                ${formatResult(item.type)}
-
+                ${isWin
+                    ? `<input type="checkbox" class="active-input" ${prize.active ? "checked" : ""}
+                              data-original="${prize.active}" aria-label="${escapeHtml(prize.name)} in play">`
+                    : `<span class="muted">Always</span>`}
             </td>
-
+            <td>
+                ${isWin
+                    ? `<input type="number" class="stock-input" min="0" step="1" placeholder="Unlimited"
+                              value="${stockValue}" data-original="${stockValue}"
+                              aria-label="${escapeHtml(prize.name)} stock left">`
+                    : `<span class="muted">—</span>`}
+            </td>
+            <td class="num given-cell">${isWin ? formatNumber(prize.given) : "—"}</td>
+            <td class="status-cell">${statusBadge(prize)}</td>
         `;
 
-        historyTable.appendChild(row);
-
+        body.appendChild(row);
     });
 
+    body.querySelectorAll("input").forEach(input => {
+        input.addEventListener("input", onFormEdit);
+        input.addEventListener("change", onFormEdit);
+    });
+
+    updateTotals();
+    setPrizeMessage("");
 }
 
-/* ==========================================================
-   PROBABILITY SUMMARY
-========================================================== */
+/* While the admin is editing, only refresh the read-only cells. */
+function updateLiveCells(){
 
-function calculateProbability(){
+    currentState.prizes.forEach(prize => {
+        const row = $("prizeRows").querySelector(`tr[data-slot="${prize.designSlot}"]`);
+        if(!row){
+            return;
+        }
+        if(prize.type === "win"){
+            row.querySelector(".given-cell").textContent = formatNumber(prize.given);
+            const stockInput = row.querySelector(".stock-input");
+            const stockValue = prize.stock === null ? "" : String(prize.stock);
+            // Keep the live stock number visible unless the admin is changing it.
+            if(stockInput && !stockInput.classList.contains("changed")){
+                stockInput.value = stockValue;
+                stockInput.dataset.original = stockValue;
+            }
+        }
+        row.querySelector(".status-cell").innerHTML = statusBadge(prize);
+    });
+}
 
-    const prizes = loadPrizes();
+function statusBadge(prize){
+
+    if(prize.type !== "win"){
+        return `<span class="badge lose">Try Again</span>`;
+    }
+    if(!prize.active){
+        return `<span class="badge paused">Paused</span>`;
+    }
+    if(prize.stock === 0){
+        return `<span class="badge out">Out of stock</span>`;
+    }
+    if(prize.stock !== null && prize.stock <= LOW_STOCK){
+        return `<span class="badge low">Low stock</span>`;
+    }
+    return `<span class="badge ok">${prize.stock === null ? "In play · unlimited" : "In play"}</span>`;
+}
+
+function onFormEdit(event){
+
+    const input = event.target;
+    const current = input.type === "checkbox" ? String(input.checked) : input.value;
+
+    input.classList.toggle("changed", current !== input.dataset.original);
+
+    formDirty = $("prizeRows").querySelectorAll(".changed").length > 0;
+
+    updateTotals();
+    setPrizeMessage(formDirty ? "You have unsaved changes." : "");
+}
+
+function updateTotals(){
 
     let total = 0;
+    let win = 0;
 
-    prizes.forEach(function(prize){
-
-        if(prize.enabled){
-
-            total += prize.chance;
-
+    $("prizeRows").querySelectorAll("tr").forEach(row => {
+        const slot = Number(row.dataset.slot);
+        const prize = currentState.prizes.find(p => p.designSlot === slot);
+        const chance = Number(row.querySelector(".chance-input").value) || 0;
+        total += chance;
+        if(prize && prize.type === "win"){
+            win += chance;
         }
-
     });
 
-    return total;
+    const totalCell = $("chanceTotal");
+    totalCell.textContent = formatPercent(total);
+    totalCell.classList.toggle("bad", Math.abs(total - 100) > 0.001);
 
+    const oneIn = win > 0 ? ` (about 1 in ${Math.round(100 / win)} spins)` : "";
+    $("winTotal").textContent = `Chance to win a prize: ${formatPercent(win)}${oneIn}. Must total 100%.`;
 }
 
-/* ==========================================================
-   CHECK CONFIGURATION
-========================================================== */
+async function savePrizes(){
 
-function configurationHealthy(){
+    const rows = $("prizeRows").querySelectorAll("tr");
+    const edits = [];
+    let total = 0;
 
-    return calculateProbability() === 100;
+    for(const row of rows){
 
-}
+        const edit = { designSlot: Number(row.dataset.slot) };
+        const chanceInput = row.querySelector(".chance-input");
+        const activeInput = row.querySelector(".active-input");
+        const stockInput = row.querySelector(".stock-input");
 
-/* ==========================================================
-   DASHBOARD REPORT
-========================================================== */
+        if(chanceInput.value === ""){
+            setPrizeMessage("Every slice needs a chance (use 0 to never land on it).", true);
+            chanceInput.focus();
+            return;
+        }
 
-function printDashboardReport(){
+        edit.chance = Number(chanceInput.value);
+        total += edit.chance;
 
-    console.group(
+        if(activeInput){
+            edit.active = activeInput.checked;
+        }
 
-        "Spin2Win Dashboard"
+        // Only send stock when it was changed, so prizes given out
+        // on other devices meanwhile are not overwritten.
+        if(stockInput && stockInput.classList.contains("changed")){
+            const value = stockInput.value.trim();
+            if(value !== "" && (!/^\d+$/.test(value))){
+                setPrizeMessage("Stock must be a whole number, or blank for unlimited.", true);
+                stockInput.focus();
+                return;
+            }
+            edit.stock = value === "" ? null : Number(value);
+        }
 
-    );
-
-    console.log(
-
-        "Statistics:",
-
-        getAnalyticsSummary()
-
-    );
-
-    console.log(
-
-        "Prizes:",
-
-        loadPrizes()
-
-    );
-
-    console.log(
-
-        "History:",
-
-        getSpinHistory()
-
-    );
-
-    console.groupEnd();
-
-}
-
-/* ==========================================================
-   AUTO HEALTH CHECK
-========================================================== */
-
-function dashboardHealthCheck(){
-
-    if(!configurationHealthy()){
-
-        console.warn(
-
-            "Prize probability is not 100%."
-
-        );
-
+        edits.push(edit);
     }
 
+    if(Math.abs(total - 100) > 0.001){
+        setPrizeMessage(`All chances must add up to 100%. They add up to ${formatPercent(total)}.`, true);
+        return;
+    }
+
+    busy = true;
+    $("saveBtn").disabled = true;
+
+    try{
+        const data = await api("savePrizes", { prizes: edits });
+        formDirty = false;
+        applyState(data.state, true);
+        toast(data.message || "Saved.");
+        setPrizeMessage("Saved. All devices now use these settings.", false, true);
+    }
+    catch(error){
+        if(error.unauthorized){
+            handleError(error);
+        }
+        else{
+            setPrizeMessage(error.message, true);
+        }
+    }
+    finally{
+        busy = false;
+        $("saveBtn").disabled = false;
+    }
 }
 
-/* ==========================================================
-   REFRESH EVERYTHING
-========================================================== */
-
-function refreshEverything(){
-
-    loadDashboard();
-
-    dashboardHealthCheck();
-
+function setPrizeMessage(text, isError = false, isOk = false){
+    const el = $("prizeMessage");
+    el.textContent = text;
+    el.classList.toggle("error", Boolean(isError));
+    el.classList.toggle("ok", Boolean(isOk));
 }
 
-/* ==========================================================
-   INITIAL HEALTH CHECK
-========================================================== */
+/* ---------------- History ---------------- */
 
-window.addEventListener(
+function filteredHistory(){
 
-    "load",
+    const query = $("historySearch").value.trim().toLowerCase();
+    const filter = $("historyFilter").value;
 
-    refreshEverything
+    return (currentState.history || []).filter(item => {
+        if(filter !== "all" && item.type !== filter){
+            return false;
+        }
+        if(query && !`${item.prize} ${item.note || ""}`.toLowerCase().includes(query)){
+            return false;
+        }
+        return true;
+    });
+}
 
-);
+function renderHistory(){
 
-/* ==========================================================
-   PUBLIC EXPORTS
-========================================================== */
+    if(!currentState){
+        return;
+    }
 
-window.searchHistory = searchHistory;
+    const body = $("historyRows");
+    const items = filteredHistory();
 
-window.refreshEverything = refreshEverything;
+    if(!items.length){
+        body.innerHTML = `<tr class="empty-row"><td colspan="4">No spins yet.</td></tr>`;
+        return;
+    }
 
-window.printDashboardReport = printDashboardReport;
+    body.innerHTML = items.map(item => `
+        <tr>
+            <td class="num">${escapeHtml(formatDate(item.time))}</td>
+            <td>${escapeHtml(item.prize)}</td>
+            <td class="${item.type === "win" ? "result-win" : "result-lose"}">${item.type === "win" ? "Win" : "Loss"}</td>
+            <td class="muted">${item.note ? escapeHtml(item.note.replace("unavailable", "out of stock / paused")) : ""}</td>
+        </tr>
+    `).join("");
+}
 
-window.configurationHealthy = configurationHealthy;
+function exportCsv(){
 
+    if(!currentState){
+        return;
+    }
 
+    const rows = [["Date & time", "Result", "Outcome", "Note"]];
 
+    filteredHistory().forEach(item => {
+        rows.push([formatDate(item.time), item.prize, item.type === "win" ? "Win" : "Loss", item.note || ""]);
+    });
 
+    rows.push([]);
+    rows.push(["Prize", "Chance %", "In play", "Stock left", "Given out"]);
+    currentState.prizes.filter(p => p.type === "win").forEach(p => {
+        rows.push([p.name, p.chance, p.active ? "Yes" : "No", p.stock === null ? "Unlimited" : p.stock, p.given]);
+    });
+
+    const csv = rows
+        .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(","))
+        .join("\r\n");
+
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-");
+
+    link.href = url;
+    link.download = `kibao-spin-history-${stamp}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+}
+
+/* ---------------- Resets ---------------- */
+
+async function resetStats(){
+
+    if(!window.confirm("Clear all spin stats and history for every device? Stock is kept.")){
+        return;
+    }
+
+    await runAction("resetStats");
+}
+
+async function restoreOdds(){
+
+    if(!window.confirm("Restore the default odds (5% to win) on every device? Stock is kept.")){
+        return;
+    }
+
+    await runAction("restoreDefaults");
+}
+
+async function runAction(action){
+
+    busy = true;
+
+    try{
+        const data = await api(action);
+        applyState(data.state, true);
+        toast(data.message || "Done.");
+    }
+    catch(error){
+        handleError(error);
+    }
+    finally{
+        busy = false;
+    }
+}
+
+/* ---------------- Helpers ---------------- */
+
+let toastTimer = null;
+
+function toast(message, isError = false){
+    const el = $("toast");
+    el.textContent = message;
+    el.classList.toggle("error", isError);
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove("show"), 3200);
+}
+
+function formatNumber(n){
+    return Number(n || 0).toLocaleString();
+}
+
+function formatPercent(n){
+    return `${Math.round(n * 100) / 100}%`;
+}
+
+function formatDate(iso){
+    const date = new Date(iso);
+    return isNaN(date) ? iso : date.toLocaleString();
+}
+
+function escapeHtml(value){
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}

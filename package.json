@@ -1,0 +1,13 @@
+{
+  "name": "kibao-county-spin-the-wheel",
+  "version": "2.0.0",
+  "private": true,
+  "description": "County Kibao Spin the Wheel with shared stock and stats on Netlify",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@netlify/blobs": ">=8.1.0"
+  }
+}

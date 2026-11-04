@@ -58,6 +58,22 @@ function showWinnerPopup(prize){
     popupOverlay.classList.add("show");
 }
 
+/* Shown when the device cannot reach the server. No spin happens. */
+function showConnectionError(){
+
+    if(!popupOverlay || !popupMessage || !closeButton){
+        return;
+    }
+
+    popupMessage.textContent =
+        "Connection problem. Please check the internet and spin again.";
+    closeButton.textContent = "OK";
+    popupOverlay.classList.remove("result-win");
+    popupOverlay.classList.add("result-loss");
+    popupOverlay.classList.remove("hidden");
+    popupOverlay.classList.add("show");
+}
+
 function hideWinnerPopup(){
     if(!popupOverlay){
         return;
@@ -70,3 +86,4 @@ function hideWinnerPopup(){
 window.initializePopup = initializePopup;
 window.showWinnerPopup = showWinnerPopup;
 window.hideWinnerPopup = hideWinnerPopup;
+window.showConnectionError = showConnectionError;

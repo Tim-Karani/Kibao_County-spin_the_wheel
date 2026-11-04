@@ -19,7 +19,6 @@ let wheelRotation = 0;
 let spinning = false;
 let animationFrame = null;
 let wheelImage = null;
-let prizes = [];
 let sliceAngle = Math.PI / 4;
 let imageReady = false;
 let previousTick = -1;
@@ -30,19 +29,25 @@ const EXTRA_ROTATIONS = 4;
 const POINTER_ANGLE = -Math.PI / 2;
 
 /*
- * Fixed visual slots in the supplied artwork, clockwise from
- * the upper-left yellow slice.
+ * Fixed slices of the artwork, clockwise from the slice just
+ * right of the pointer. This table is the single source of truth
+ * for what each slice shows; admin settings cannot change it, so
+ * the result always matches the picture under the pointer.
  */
 const DESIGN_SLOTS = [
-    { id: 1, angle: -3 * Math.PI / 8 },   // Bucket Hat
-    { id: 2, angle: -Math.PI / 8 },       // Try Again (maroon)
-    { id: 3, angle:  Math.PI / 8 },        // T-Shirt
-    { id: 4, angle:  3 * Math.PI / 8 },    // Try Again (yellow)
-    { id: 5, angle:  5 * Math.PI / 8 },    // Wristband
-    { id: 6, angle:  7 * Math.PI / 8 },    // Try Again (maroon)
-    { id: 7, angle:  9 * Math.PI / 8 },    // Tumbler
-    { id: 8, angle: 11 * Math.PI / 8 }    // Try Again (yellow)
+    { id: 1, angle: -3 * Math.PI / 8, name: "Bucket Hat",          type: "win"  },
+    { id: 2, angle:     -Math.PI / 8, name: "Try Again Next Time", type: "lose" },
+    { id: 3, angle:      Math.PI / 8, name: "T-Shirt",             type: "win"  },
+    { id: 4, angle:  3 * Math.PI / 8, name: "Try Again Next Time", type: "lose" },
+    { id: 5, angle:  5 * Math.PI / 8, name: "Wristband",           type: "win"  },
+    { id: 6, angle:  7 * Math.PI / 8, name: "Try Again Next Time", type: "lose" },
+    { id: 7, angle:  9 * Math.PI / 8, name: "Tumbler",             type: "win"  },
+    { id: 8, angle: 11 * Math.PI / 8, name: "Try Again Next Time", type: "lose" }
 ];
+
+/* Stop somewhere inside the slice, never closer than ~30% of a
+   half-slice to its edge, so landings look natural. */
+const LANDING_SPREAD = (Math.PI / 8) * 0.7;
 
 function initializeWheel(canvas){
 
@@ -84,17 +89,6 @@ function loadWheelImage(){
     wheelImage.src = WHEEL_IMAGE;
 }
 
-function refreshWheelData(){
-
-    if(typeof getEnabledPrizes !== "function"){
-        prizes = [];
-        return;
-    }
-
-    prizes = getEnabledPrizes();
-    sliceAngle = Math.PI / 4;
-}
-
 function resizeWheel(){
 
     if(!wheelCanvas || !ctx){
@@ -131,8 +125,6 @@ function redrawWheel(){
     if(!ctx){
         return;
     }
-
-    refreshWheelData();
 
     ctx.clearRect(0, 0, wheelSize, wheelSize);
 
@@ -205,37 +197,20 @@ function easeOutQuint(t){
     return 1 - Math.pow(1 - t, 5);
 }
 
-function getPrizeIndex(prize){
+function getSlotIndex(designSlot){
 
-    if(!prize){
-        return -1;
-    }
-
-    return prizes.findIndex(function(item){
-        return item.id === prize.id;
+    const index = DESIGN_SLOTS.findIndex(function(slot){
+        return slot.id === Number(designSlot);
     });
+
+    return index;
 }
 
-function getDesignSlotForPrize(prize){
+function calculateTargetRotation(designSlot){
 
-    if(!prize){
-        return 0;
-    }
-
-    const slot = Number(prize.designSlot);
-
-    if(Number.isInteger(slot) && slot >= 1 && slot <= 8){
-        return slot - 1;
-    }
-
-    const index = getPrizeIndex(prize);
-    return index >= 0 ? index % 8 : 0;
-}
-
-function calculateTargetRotation(prize){
-
-    const slotIndex = getDesignSlotForPrize(prize);
-    const localCenter = DESIGN_SLOTS[slotIndex].angle;
+    const slotIndex = getSlotIndex(designSlot);
+    const offset = (Math.random() * 2 - 1) * LANDING_SPREAD;
+    const localCenter = DESIGN_SLOTS[slotIndex].angle + offset;
 
     let target = POINTER_ANGLE - localCenter;
 
@@ -305,24 +280,23 @@ function animateWheel(targetRotation, callback){
     animationFrame = requestAnimationFrame(frame);
 }
 
-function spinWheel(prize, callback){
+/*
+ * Spin to the slice chosen by the server (designSlot 1-8).
+ * When the wheel stops, the result is read from the slice that is
+ * physically under the pointer and passed to the callback.
+ */
+function spinWheel(designSlot, callback){
 
-    if(spinning || !prize){
+    if(spinning || getSlotIndex(designSlot) < 0){
         return false;
     }
 
-    refreshWheelData();
-
-    const targetRotation = calculateTargetRotation(prize);
+    const targetRotation = calculateTargetRotation(designSlot);
 
     animateWheel(targetRotation, function(){
 
-        // Never trust the pre-selected prize for the result message.
-        // Read the segment physically under the pointer after the wheel stops.
-        const landedPrize = getCurrentPrize();
-
         if(typeof callback === "function"){
-            callback(landedPrize || prize);
+            callback(getCurrentPrize());
         }
     });
 
@@ -352,16 +326,16 @@ function getCurrentSliceIndex(){
 
 function getCurrentPrize(){
 
-    const slotIndex = getCurrentSliceIndex();
-    const slotId = DESIGN_SLOTS[slotIndex].id;
+    const slot = DESIGN_SLOTS[getCurrentSliceIndex()];
 
-    return prizes.find(function(prize){
-        return Number(prize.designSlot) === Number(slotId);
-    }) || null;
+    return {
+        designSlot: slot.id,
+        name: slot.name,
+        type: slot.type
+    };
 }
 
 function reloadWheel(){
-    refreshWheelData();
     redrawWheel();
 }
 
@@ -380,7 +354,6 @@ function destroyWheel(){
     stopAnimation();
     spinning = false;
     wheelRotation = 0;
-    prizes = [];
     wheelImage = null;
     imageReady = false;
     wheelCanvas = null;
@@ -392,7 +365,9 @@ function isWheelSpinning(){
 }
 
 function getWheelPrizes(){
-    return prizes;
+    return DESIGN_SLOTS.map(function(slot){
+        return { designSlot: slot.id, name: slot.name, type: slot.type };
+    });
 }
 
 function getWheelRotation(){
@@ -415,6 +390,7 @@ window.resetWheel = resetWheel;
 window.destroyWheel = destroyWheel;
 window.redrawWheel = redrawWheel;
 window.getWheelPrizes = getWheelPrizes;
+window.getCurrentPrize = getCurrentPrize;
 window.getWheelRotation = getWheelRotation;
 window.getWheelRadius = getWheelRadius;
 window.getWheelSize = getWheelSize;

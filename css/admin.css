@@ -1,557 +1,240 @@
 /* ==========================================================
-   SPIN2WIN - KIBAO EDITION
+   SPIN2WIN - COUNTY KIBAO
    admin.css
 ========================================================== */
 
-/* ==========================================================
-   ROOT
-========================================================== */
-
 :root{
-
-    --primary:#ef3e42;
-    --primary-dark:#c62828;
-
-    --secondary:#f6b100;
-
-    --success:#2e7d32;
-    --danger:#d32f2f;
-
-    --white:#ffffff;
-    --light:#f7f8fc;
-    --border:#e5e7eb;
-
-    --text:#374151;
-    --text-light:#6b7280;
-
-    --shadow:0 10px 30px rgba(0,0,0,.08);
-
-    --radius:18px;
-
+    --maroon:#771030;
+    --maroon-dark:#5a0c24;
+    --red:#DB1212;
+    --yellow:#F3BB17;
+    --green:#2e7d32;
+    --bg:#f5f3f1;
+    --card:#ffffff;
+    --border:#e7e1dc;
+    --text:#2a2326;
+    --muted:#6f6468;
+    --shadow:0 8px 24px rgba(40,10,20,.07);
+    --radius:16px;
 }
 
-/* ==========================================================
-   RESET
-========================================================== */
+*{ margin:0; padding:0; box-sizing:border-box; }
 
-*{
-
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-
-}
+html, body{ min-height:100%; }
 
 body{
-
-    font-family:"Poppins",sans-serif;
-
-    background:#f4f6fb;
-
+    font-family:"Poppins", Arial, sans-serif;
+    background:var(--bg);
     color:var(--text);
-
+    font-size:14px;
 }
 
-/* ==========================================================
-   HEADER
-========================================================== */
+.hidden{ display:none !important; }
+
+/* ---------------- Buttons ---------------- */
+
+.btn{
+    border:0;
+    border-radius:10px;
+    padding:10px 18px;
+    font:600 14px "Poppins", Arial, sans-serif;
+    cursor:pointer;
+    transition:background .15s ease, opacity .15s ease;
+    white-space:nowrap;
+}
+.btn:disabled{ opacity:.5; cursor:not-allowed; }
+.btn-primary{ background:var(--maroon); color:#fff; }
+.btn-primary:hover:not(:disabled){ background:var(--maroon-dark); }
+.btn-dark{ background:#1d1a1b; color:#fff; }
+.btn-light{ background:#efe9e5; color:var(--text); }
+.btn-light:hover:not(:disabled){ background:#e4dcd6; }
+.btn-outline-danger{ background:#fff; color:var(--red); border:2px solid var(--red); }
+.btn-outline-danger:hover:not(:disabled){ background:#fdecec; }
+
+/* ---------------- Login ---------------- */
+
+.login-view{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px 16px;
+    background:#000 radial-gradient(circle at 50% 20%, #3a0717 0%, #000 70%);
+}
+
+.login-card{
+    width:min(380px, 100%);
+    background:#fff;
+    border-radius:20px;
+    padding:32px 28px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    box-shadow:0 24px 70px rgba(0,0,0,.5);
+}
+.login-logo{ width:64px; height:64px; object-fit:contain; align-self:center; }
+.login-card h1{ font-size:22px; text-align:center; }
+.login-card > p{ color:var(--muted); text-align:center; margin-bottom:8px; }
+.login-card label{ font-weight:600; }
+.login-card input{
+    padding:12px 14px;
+    border:1.5px solid var(--border);
+    border-radius:10px;
+    font:inherit;
+}
+.login-card input:focus{ outline:2px solid var(--yellow); border-color:var(--maroon); }
+.login-card .btn, .login-card button{ margin-top:6px; }
+#loginBtn{
+    border:0; border-radius:10px; padding:12px;
+    background:var(--maroon); color:#fff; font:600 15px "Poppins", Arial, sans-serif; cursor:pointer;
+}
+.form-error{ color:var(--red); min-height:20px; text-align:center; font-weight:500; }
+
+/* ---------------- Header ---------------- */
 
 .admin-header{
-
-    height:80px;
-
-    background:#ffffff;
-
-    box-shadow:var(--shadow);
-
-    display:flex;
-
-    justify-content:space-between;
-
-    align-items:center;
-
-    padding:0 40px;
-
-    position:sticky;
-
-    top:0;
-
-    z-index:1000;
-
-}
-
-.header-left{
-
-    display:flex;
-
-    align-items:center;
-
-    gap:18px;
-
-}
-
-.logo{
-
-    width:55px;
-
-    height:55px;
-
-    object-fit:contain;
-
-}
-
-.header-left h1{
-
-    font-size:24px;
-
-    font-weight:700;
-
-}
-
-.header-left span{
-
-    color:var(--text-light);
-
-    font-size:14px;
-
-}
-
-.header-right button{
-
-    border:none;
-
-    cursor:pointer;
-
-    background:var(--primary);
-
+    position:sticky; top:0; z-index:100;
+    display:flex; justify-content:space-between; align-items:center; gap:16px;
+    padding:12px 32px;
+    background:#000;
     color:#fff;
-
-    padding:12px 28px;
-
-    border-radius:10px;
-
-    font-weight:600;
-
-    transition:.3s;
-
+    border-bottom:4px solid var(--yellow);
 }
+.header-left{ display:flex; align-items:center; gap:14px; min-width:0; }
+.logo{ width:46px; height:46px; object-fit:contain; }
+.header-left h1{ font-size:20px; line-height:1.2; }
+.header-left span{ color:#cfc5c8; font-size:12px; }
+.header-right{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+.last-updated{ color:#cfc5c8; font-size:12px; }
 
-.header-right button:hover{
-
-    background:var(--primary-dark);
-
-}
-
-/* ==========================================================
-   MAIN
-========================================================== */
+/* ---------------- Layout ---------------- */
 
 .dashboard{
-
-    max-width:1400px;
-
-    margin:40px auto;
-
-    padding:0 30px;
-
+    max-width:1180px;
+    margin:0 auto;
+    padding:28px 24px 60px;
+    display:flex;
+    flex-direction:column;
+    gap:24px;
 }
-
-/* ==========================================================
-   STATS
-========================================================== */
 
 .stats-grid{
-
     display:grid;
-
-    grid-template-columns:repeat(4,1fr);
-
-    gap:25px;
-
-    margin-bottom:35px;
-
+    grid-template-columns:repeat(4, minmax(0,1fr));
+    gap:16px;
 }
-
 .stat-card{
-
-    background:#fff;
-
+    background:var(--card);
     border-radius:var(--radius);
-
-    padding:30px;
-
+    padding:18px 20px;
     box-shadow:var(--shadow);
-
-    transition:.3s;
-
+    border-top:5px solid var(--maroon);
 }
-
-.stat-card:hover{
-
-    transform:translateY(-5px);
-
-}
-
-.stat-card h3{
-
-    font-size:15px;
-
-    color:var(--text-light);
-
-    margin-bottom:15px;
-
-}
-
-.stat-card h2{
-
-    font-size:38px;
-
-    color:var(--primary);
-
-}
-
-/* ==========================================================
-   CARDS
-========================================================== */
+.stat-card.win{ border-top-color:var(--green); }
+.stat-card.loss{ border-top-color:var(--yellow); }
+.stat-card h3{ font-size:13px; font-weight:500; color:var(--muted); }
+.stat-card p{ font-size:30px; font-weight:800; font-variant-numeric:tabular-nums; }
+.stat-card small{ color:var(--muted); }
 
 .dashboard-card{
-
-    background:#fff;
-
+    background:var(--card);
     border-radius:var(--radius);
-
-    padding:30px;
-
-    margin-bottom:35px;
-
+    padding:22px 24px;
     box-shadow:var(--shadow);
-
 }
-
 .card-header{
-
-    margin-bottom:25px;
-
+    display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;
+    margin-bottom:16px;
 }
+.card-header h2{ font-size:18px; }
+.hint{ color:var(--muted); font-size:13px; margin-top:4px; max-width:680px; }
+.muted{ color:var(--muted); }
 
-.card-header h2{
+/* ---------------- Tables ---------------- */
 
-    font-size:24px;
+.table-wrapper{ overflow-x:auto; }
+.history-wrapper{ max-height:460px; overflow-y:auto; }
 
-    font-weight:700;
-
+table{ width:100%; border-collapse:collapse; }
+th, td{ padding:10px 12px; text-align:left; border-bottom:1px solid var(--border); vertical-align:middle; }
+th{
+    font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted);
+    background:#faf8f6; position:sticky; top:0; z-index:1;
 }
+tfoot td{ font-weight:700; border-bottom:0; }
+td.num, .num{ font-variant-numeric:tabular-nums; }
 
-/* ==========================================================
-   PRIZE CONTAINER
-========================================================== */
+.slice-cell{ display:flex; align-items:center; gap:10px; min-width:180px; }
+.slice-swatch{ width:14px; height:14px; border-radius:4px; flex:none; border:1px solid rgba(0,0,0,.15); }
+.slice-num{ color:var(--muted); font-size:12px; }
 
-#prizeContainer{
-
-    display:grid;
-
-    grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
-
-    gap:20px;
-
+.prize-table input[type="number"]{
+    width:100px;
+    padding:8px 10px;
+    border:1.5px solid var(--border);
+    border-radius:8px;
+    font:inherit;
+    font-variant-numeric:tabular-nums;
 }
+.prize-table input[type="number"]:focus{ outline:2px solid var(--yellow); border-color:var(--maroon); }
+.prize-table input.changed{ border-color:var(--maroon); background:#fff8e1; }
+.prize-table input:disabled{ background:#f3f0ee; color:var(--muted); }
+.prize-table input[type="checkbox"]{ width:18px; height:18px; accent-color:var(--maroon); }
 
-/* ==========================================================
-   SAMPLE PRIZE CARD
-========================================================== */
-
-.prize-card{
-
-    border:1px solid var(--border);
-
-    border-radius:15px;
-
-    padding:20px;
-
-    background:#fafafa;
-
+.badge{
+    display:inline-block; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:600; white-space:nowrap;
 }
+.badge.ok{ background:#e6f4ea; color:var(--green); }
+.badge.low{ background:#fff4d6; color:#8a5a00; }
+.badge.out{ background:#fdecec; color:var(--red); }
+.badge.paused{ background:#eee; color:#555; }
+.badge.lose{ background:#f6eef1; color:var(--maroon); }
 
-.prize-card label{
-
-    display:block;
-
-    font-size:13px;
-
-    font-weight:600;
-
-    margin-bottom:6px;
-
-    margin-top:12px;
-
-}
-
-.prize-card input,
-
-.prize-card select{
-
-    width:100%;
-
-    padding:10px 12px;
-
-    border:1px solid var(--border);
-
-    border-radius:10px;
-
-    font-size:14px;
-
-    outline:none;
-
-}
-
-.prize-card input:focus{
-
-    border-color:var(--primary);
-
-}
-
-/* ==========================================================
-   BUTTONS
-========================================================== */
+#chanceTotal.bad{ color:var(--red); }
 
 .card-actions{
+    display:flex; justify-content:flex-end; align-items:center; gap:10px; flex-wrap:wrap; margin-top:16px;
+}
+.form-message{ margin-right:auto; font-weight:500; }
+.form-message.error{ color:var(--red); }
+.form-message.ok{ color:var(--green); }
 
-    display:flex;
-
-    gap:15px;
-
-    margin-top:25px;
-
+.history-tools{ display:flex; gap:8px; flex-wrap:wrap; }
+.history-tools input, .history-tools select{
+    padding:9px 12px; border:1.5px solid var(--border); border-radius:10px; font:inherit; background:#fff;
 }
 
-button{
+.result-win{ color:var(--green); font-weight:600; }
+.result-lose{ color:var(--maroon); }
 
-    border:none;
+.actions-grid{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:20px; }
+.danger-zone{ border:1px solid #f3d3d3; }
 
-    cursor:pointer;
+.empty-row td{ text-align:center; color:var(--muted); padding:28px; }
 
-    padding:13px 24px;
+/* ---------------- Toast ---------------- */
 
-    border-radius:10px;
+.toast{
+    position:fixed; left:50%; bottom:24px; transform:translate(-50%, 20px);
+    background:#1d1a1b; color:#fff; padding:12px 20px; border-radius:12px;
+    opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease; z-index:500;
+    max-width:calc(100% - 32px);
+}
+.toast.show{ opacity:1; transform:translate(-50%, 0); }
+.toast.error{ background:var(--red); }
 
-    font-family:inherit;
+/* ---------------- Small screens ---------------- */
 
-    font-weight:600;
-
-    transition:.3s;
-
+@media (max-width:900px){
+    .stats-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
 }
 
-#addPrizeBtn{
-
-    background:var(--secondary);
-
-    color:#fff;
-
-}
-
-#savePrizesBtn{
-
-    background:var(--primary);
-
-    color:#fff;
-
-}
-
-#addPrizeBtn:hover{
-
-    filter:brightness(.95);
-
-}
-
-#savePrizesBtn:hover{
-
-    background:var(--primary-dark);
-
-}
-
-/* ==========================================================
-   TABLE
-========================================================== */
-
-.table-wrapper{
-
-    overflow-x:auto;
-
-}
-
-table{
-
-    width:100%;
-
-    border-collapse:collapse;
-
-}
-
-thead{
-
-    background:#fafafa;
-
-}
-
-th{
-
-    text-align:left;
-
-    padding:16px;
-
-    font-size:14px;
-
-    color:var(--text-light);
-
-}
-
-td{
-
-    padding:16px;
-
-    border-top:1px solid var(--border);
-
-    font-size:14px;
-
-}
-
-/* ==========================================================
-   ACTIONS
-========================================================== */
-
-.actions-grid{
-
-    display:flex;
-
-    gap:20px;
-
-    flex-wrap:wrap;
-
-}
-
-#exportAnalyticsBtn{
-
-    background:#1976d2;
-
-    color:#fff;
-
-}
-
-#resetAnalyticsBtn{
-
-    background:#ef6c00;
-
-    color:#fff;
-
-}
-
-#resetPrizesBtn{
-
-    background:#d32f2f;
-
-    color:#fff;
-
-}
-
-.actions-grid button:hover{
-
-    transform:translateY(-2px);
-
-}
-
-/* ==========================================================
-   FOOTER
-========================================================== */
-
-footer{
-
-    padding:25px;
-
-    text-align:center;
-
-    color:var(--text-light);
-
-}
-
-/* ==========================================================
-   RESPONSIVE
-========================================================== */
-
-@media(max-width:1100px){
-
-    .stats-grid{
-
-        grid-template-columns:repeat(2,1fr);
-
-    }
-
-}
-
-@media(max-width:768px){
-
-    .admin-header{
-
-        flex-direction:column;
-
-        height:auto;
-
-        gap:15px;
-
-        padding:20px;
-
-    }
-
-    .dashboard{
-
-        padding:20px;
-
-    }
-
-    .stats-grid{
-
-        grid-template-columns:1fr;
-
-    }
-
-    .card-actions,
-
-    .actions-grid{
-
-        flex-direction:column;
-
-    }
-
-    button{
-
-        width:100%;
-
-    }
-
-}
-
-@media(max-width:500px){
-
-    .header-left{
-
-        flex-direction:column;
-
-        text-align:center;
-
-    }
-
-    .logo{
-
-        width:70px;
-
-        height:70px;
-
-    }
-
-    .card-header h2{
-
-        font-size:20px;
-
-    }
-
+@media (max-width:640px){
+    .admin-header{ padding:12px 16px; flex-wrap:wrap; }
+    .last-updated{ display:none; }
+    .dashboard{ padding:16px 16px 48px; gap:16px; }
+    .dashboard-card{ padding:18px 16px; }
+    .stat-card p{ font-size:24px; }
+    .actions-grid{ grid-template-columns:1fr; }
+    .prize-table input[type="number"]{ width:80px; }
 }

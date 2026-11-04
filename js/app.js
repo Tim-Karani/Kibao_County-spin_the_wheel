@@ -1,15 +1,20 @@
 /* ==========================================================
    SPIN2WIN - COUNTY KIBAO
    APPLICATION CONTROLLER
+
+   The result of every spin is drawn on the Netlify server
+   (/api/spin), so all devices share the same odds and stock.
 ========================================================== */
 
 "use strict";
+
+const SPIN_ENDPOINT = "/api/spin";
+const SPIN_TIMEOUT_MS = 10000;
 
 let canvas = null;
 let spinButton = null;
 let loadingScreen = null;
 let isSpinning = false;
-
 
 document.addEventListener("DOMContentLoaded", initializeApplication);
 
@@ -30,7 +35,6 @@ function cacheDOM(){
 function initializeModules(){
 
     initializeModule("Popup", initializePopup);
-    initializeModule("Sounds", initializeSounds);
     initializeModule("Wheel", function(){
         initializeWheel(canvas);
     });
@@ -57,56 +61,89 @@ function bindEvents(){
         spinButton.addEventListener("click", startSpin);
     }
 
-    /* The wheel is the primary visible control. */
+    /* The wheel itself is also a spin control. */
     window.startSpinFromWheel = startSpin;
 }
 
-function startSpin(){
+function setBusy(busy){
 
-    if(isSpinning){
-        return;
-    }
-
-    if(typeof getRandomPrize !== "function" || typeof spinWheel !== "function"){
-        console.error("Spin engine is unavailable.");
-        return;
-    }
-
-    const prize = getRandomPrize();
-
-    if(!prize){
-        console.warn("No enabled prizes are available.");
-        return;
-    }
-
-    isSpinning = true;
+    isSpinning = busy;
 
     if(spinButton){
-        spinButton.disabled = true;
+        spinButton.disabled = busy;
     }
+}
+
+async function requestSpin(){
+
+    const controller = new AbortController();
+    const timer = setTimeout(function(){ controller.abort(); }, SPIN_TIMEOUT_MS);
+
+    try{
+        const response = await fetch(SPIN_ENDPOINT, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: "{}",
+            cache: "no-store",
+            signal: controller.signal
+        });
+
+        const data = await response.json().catch(function(){ return {}; });
+
+        if(!response.ok || !data.result){
+            throw new Error(data.error || "Spin failed.");
+        }
+
+        return data.result;
+    }
+    finally{
+        clearTimeout(timer);
+    }
+}
+
+async function startSpin(){
+
+    if(isSpinning || (typeof isWheelSpinning === "function" && isWheelSpinning())){
+        return;
+    }
+
+    setBusy(true);
 
     if(typeof playClickSound === "function"){
         playClickSound();
+    }
+
+    let result = null;
+
+    try{
+        result = await requestSpin();
+    }
+    catch(error){
+        console.error("Spin request failed:", error);
+        setBusy(false);
+
+        if(typeof showConnectionError === "function"){
+            showConnectionError();
+        }
+        return;
     }
 
     if(typeof playSpinSound === "function"){
         playSpinSound();
     }
 
-    spinWheel(prize, function(landedPrize){
-        // The wheel engine determines the actual segment under the pointer.
-        finishSpin(landedPrize || prize);
+    const started = spinWheel(result.designSlot, function(landed){
+        finishSpin(landed || result);
     });
+
+    if(!started){
+        setBusy(false);
+    }
 }
 
 function finishSpin(prize){
 
     try{
-
-        if(typeof recordSpin === "function"){
-            recordSpin(prize);
-        }
-
         if(typeof playResultSound === "function"){
             playResultSound(prize);
         }
@@ -116,11 +153,7 @@ function finishSpin(prize){
         }
     }
     finally{
-        isSpinning = false;
-
-        if(spinButton){
-            spinButton.disabled = false;
-        }
+        setBusy(false);
     }
 }
 

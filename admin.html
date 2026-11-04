@@ -1,294 +1,165 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
-    <title>Spin2Win Admin Dashboard</title>
-
-    <!-- ==========================================================
-         GOOGLE FONT
-    =========================================================== -->
-
-    <link rel="preconnect"
-          href="https://fonts.googleapis.com">
-
-    <link rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossorigin>
-
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
-          rel="stylesheet">
-
-    <!-- ==========================================================
-         CSS
-    =========================================================== -->
-
-    <link rel="stylesheet"
-          href="css/admin.css">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Spin the Wheel Admin | County Kibao</title>
+    <link rel="icon" type="image/png" href="assets/images/logo/kk.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/admin.css">
 </head>
-
 <body>
 
-    <!-- ==========================================================
-         HEADER
-    =========================================================== -->
+    <!-- ======================== LOGIN ======================== -->
+    <section id="loginView" class="login-view">
+        <form id="loginForm" class="login-card" autocomplete="off">
+            <img src="assets/images/logo/kk.png" alt="" class="login-logo">
+            <h1>Admin login</h1>
+            <p>Enter the admin password to manage prizes, stock and results.</p>
+            <label for="passwordInput">Password</label>
+            <input id="passwordInput" type="password" autocomplete="current-password" required>
+            <button type="submit" id="loginBtn">Log in</button>
+            <p id="loginError" class="form-error" role="alert"></p>
+        </form>
+    </section>
 
-    <header class="admin-header">
+    <!-- ====================== DASHBOARD ====================== -->
+    <div id="dashboardView" class="hidden">
 
-        <div class="header-left">
-
-            <img src="assets/images/logo/logo.png"
-                 alt="Spin2Win Logo"
-                 class="logo">
-
-            <div>
-
-                <h1>
-
-                    Spin2Win
-
-                </h1>
-
-                <span>
-
-                    Admin Dashboard
-
-                </span>
-
+        <header class="admin-header">
+            <div class="header-left">
+                <img src="assets/images/logo/kk.png" alt="County Kibao" class="logo">
+                <div>
+                    <h1>Spin the Wheel</h1>
+                    <span>Admin dashboard · shared by all devices</span>
+                </div>
             </div>
-
-        </div>
-
-        <div class="header-right">
-
-            <button id="refreshDashboard">
-
-                Refresh
-
-            </button>
-
-        </div>
-
-    </header>
-
-    <!-- ==========================================================
-         MAIN
-    =========================================================== -->
-
-    <main class="dashboard">
-
-        <!-- ======================================================
-             ANALYTICS
-        ======================================================= -->
-
-        <section class="stats-grid">
-
-            <div class="stat-card">
-
-                <h3>Total Spins</h3>
-
-                <h2 id="totalSpins">
-
-                    0
-
-                </h2>
-
+            <div class="header-right">
+                <span id="lastUpdated" class="last-updated"></span>
+                <button id="refreshBtn" type="button" class="btn btn-light">Refresh</button>
+                <button id="logoutBtn" type="button" class="btn btn-dark">Log out</button>
             </div>
-
-            <div class="stat-card">
-
-                <h3>Total Wins</h3>
-
-                <h2 id="totalWins">
-
-                    0
-
-                </h2>
-
-            </div>
-
-            <div class="stat-card">
-
-                <h3>Total Losses</h3>
-
-                <h2 id="totalLosses">
-
-                    0
-
-                </h2>
-
-            </div>
-
-            <div class="stat-card">
-
-                <h3>Retries</h3>
-
-                <h2 id="totalRetries">
-
-                    0
-
-                </h2>
-
-            </div>
-
-        </section>
-
-        <!-- ======================================================
-             PRIZES
-        ======================================================= -->
-
-        <section class="dashboard-card">
-
-            <div class="card-header">
-
-                <h2>
-
-                    Prize Configuration
-
-                </h2>
-
-            </div>
-
-            <div id="prizeContainer">
-
-                <!-- Generated by admin.js -->
-
-            </div>
-
-            <div class="card-actions">
-
-                <button id="addPrizeBtn">
-
-                    + Add Prize
-
-                </button>
-
-                <button id="savePrizesBtn">
-
-                    Save Changes
-
-                </button>
-
-            </div>
-
-        </section>
-
-        <!-- ======================================================
-             HISTORY
-        ======================================================= -->
-
-        <section class="dashboard-card">
-
-            <div class="card-header">
-
-                <h2>
-
-                    Spin History
-
-                </h2>
-
-            </div>
-
-            <div class="table-wrapper">
-
-                <table>
-
-                    <thead>
-
-                        <tr>
-
-                            <th>Date</th>
-
-                            <th>Prize</th>
-
-                            <th>Result</th>
-
-                        </tr>
-
-                    </thead>
-
-                    <tbody id="historyTable">
-
-                        <!-- Generated by admin.js -->
-
-                    </tbody>
-
-                </table>
-
-            </div>
-
-        </section>
-
-        <!-- ======================================================
-             ACTIONS
-        ======================================================= -->
-
-        <section class="dashboard-card">
-
-            <div class="card-header">
-
-                <h2>
-
-                    Actions
-
-                </h2>
-
-            </div>
-
-            <div class="actions-grid">
-
-                <button id="exportAnalyticsBtn">
-
-                    Export Analytics
-
-                </button>
-
-                <button id="resetAnalyticsBtn">
-
-                    Reset Analytics
-
-                </button>
-
-                <button id="resetPrizesBtn">
-
-                    Reset Prizes
-
-                </button>
-
-            </div>
-
-        </section>
-
-    </main>
-
-    <!-- ==========================================================
-         FOOTER
-    =========================================================== -->
-
-    <footer>
-
-        © 2026 Spin2Win Admin Dashboard
-
-    </footer>
-
-    <!-- ==========================================================
-         JAVASCRIPT
-    =========================================================== -->
-
-    <script src="js/storage.js"></script>
-
-    <script src="js/prizes.js"></script>
-
-    <script src="js/analytics.js"></script>
+        </header>
+
+        <main class="dashboard">
+
+            <section class="stats-grid" aria-label="Results so far">
+                <div class="stat-card">
+                    <h3>Total spins</h3>
+                    <p id="statSpins">0</p>
+                </div>
+                <div class="stat-card win">
+                    <h3>Wins (prizes given)</h3>
+                    <p id="statWins">0</p>
+                </div>
+                <div class="stat-card loss">
+                    <h3>Losses (Try Again)</h3>
+                    <p id="statLosses">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Actual win rate</h3>
+                    <p id="statRate">0%</p>
+                    <small id="statRateTarget"></small>
+                </div>
+            </section>
+
+            <section class="dashboard-card">
+                <div class="card-header">
+                    <div>
+                        <h2>Prizes, odds &amp; stock</h2>
+                        <p class="hint">Stock is shared by every device. Leave stock blank for unlimited. When a prize's stock reaches 0 (or it is paused), players who would have won it get Try Again instead.</p>
+                    </div>
+                </div>
+
+                <div class="table-wrapper">
+                    <table class="prize-table">
+                        <thead>
+                            <tr>
+                                <th>Slice</th>
+                                <th>Chance %</th>
+                                <th>In play</th>
+                                <th>Stock left</th>
+                                <th>Given out</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="prizeRows"></tbody>
+                        <tfoot>
+                            <tr>
+                                <td>Total</td>
+                                <td id="chanceTotal">0%</td>
+                                <td colspan="4" id="winTotal" class="muted"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div class="card-actions">
+                    <p id="prizeMessage" class="form-message" role="status"></p>
+                    <button id="discardBtn" type="button" class="btn btn-light">Discard changes</button>
+                    <button id="saveBtn" type="button" class="btn btn-primary">Save changes</button>
+                </div>
+            </section>
+
+            <section class="dashboard-card">
+                <div class="card-header">
+                    <div>
+                        <h2>Spin history</h2>
+                        <p class="hint">Latest 1,000 spins from all devices.</p>
+                    </div>
+                    <div class="history-tools">
+                        <input id="historySearch" type="search" placeholder="Search prize…" aria-label="Search history">
+                        <select id="historyFilter" aria-label="Filter results">
+                            <option value="all">All results</option>
+                            <option value="win">Wins only</option>
+                            <option value="lose">Losses only</option>
+                        </select>
+                        <button id="exportBtn" type="button" class="btn btn-light">Export CSV</button>
+                    </div>
+                </div>
+
+                <div class="table-wrapper history-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date &amp; time</th>
+                                <th>Result</th>
+                                <th>Outcome</th>
+                                <th>Note</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyRows"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="dashboard-card danger-zone">
+                <div class="card-header">
+                    <div>
+                        <h2>Reset</h2>
+                        <p class="hint">These affect every device.</p>
+                    </div>
+                </div>
+                <div class="actions-grid">
+                    <div>
+                        <button id="resetStatsBtn" type="button" class="btn btn-outline-danger">Clear stats &amp; history</button>
+                        <p class="hint">Sets spins, wins and losses back to 0. Stock and "given out" counts are kept.</p>
+                    </div>
+                    <div>
+                        <button id="restoreOddsBtn" type="button" class="btn btn-outline-danger">Restore default odds</button>
+                        <p class="hint">1.25% per prize (5% total to win), 23.75% per Try Again slice. Stock is kept.</p>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
     <script src="js/admin.js"></script>
-
 </body>
-
 </html>

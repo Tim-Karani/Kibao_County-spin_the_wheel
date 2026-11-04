@@ -1,0 +1,25 @@
+# Netlify settings for County Kibao Spin the Wheel.
+# The site is plain HTML. The "build" only copies the game files
+# into dist/ so server code and node_modules are not published.
+# Netlify installs @netlify/blobs for the two functions.
+
+[build]
+  publish = "dist"
+  command = "rm -rf dist && mkdir dist && cp -r index.html admin.html css js assets dist/"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Keep the admin page out of search engines.
+[[headers]]
+  for = "/admin.html"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    Cache-Control = "no-store"
+
+# Always load the latest game code after a deploy.
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

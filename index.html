@@ -26,6 +26,11 @@
                 <canvas id="wheelCanvas" aria-label="Spin the wheel"></canvas>
             </div>
 
+            <button id="soundToggle" type="button" aria-label="Mute sound" aria-pressed="false">
+                <svg class="icon-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <svg class="icon-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 9.5l5 5m0-5l-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+
             <button id="spinBtn" type="button" aria-label="Spin the wheel">
                 SPIN THE WHEEL
             </button>
@@ -43,12 +48,9 @@
         </div>
     </div>
 
-    <script src="js/storage.js"></script>
-    <script src="js/prizes.js"></script>
     <script src="js/wheel.js"></script>
     <script src="js/popup.js"></script>
     <script src="js/sounds.js"></script>
-    <script src="js/analytics.js"></script>
     <script src="js/app.js"></script>
 
 </body>
