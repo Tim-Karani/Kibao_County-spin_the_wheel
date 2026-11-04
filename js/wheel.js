@@ -113,6 +113,12 @@ function resizeWheel(){
     centerX = wheelSize / 2;
     centerY = wheelSize / 2;
 
+    // Let the pointer reach past the gold ring to touch the artwork.
+    wheelCanvas.parentElement.style.setProperty(
+        "--pointer-drop",
+        Math.round(getRingWidth() * 0.85) + "px"
+    );
+
     ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
@@ -133,7 +139,11 @@ function redrawWheel(){
         return;
     }
 
-    const radius = wheelSize * 0.498;
+    const outerRadius = wheelSize * 0.498;
+    const ringWidth = getRingWidth();
+    const radius = outerRadius - ringWidth;
+
+    drawGoldRing(outerRadius, ringWidth);
 
     ctx.save();
 
@@ -155,12 +165,133 @@ function redrawWheel(){
 
     ctx.restore();
 
-    /* Crisp black edge matching the supplied artwork. */
+    /* Crisp black edge between the artwork and the gold ring. */
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius - 1, 0, Math.PI * 2);
     ctx.lineWidth = Math.max(3, wheelSize * 0.008);
     ctx.strokeStyle = "#000000";
     ctx.stroke();
+
+    /* Thin highlight just inside the ring for a bevelled look. */
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius + 1, 0, Math.PI * 2);
+    ctx.lineWidth = Math.max(1, wheelSize * 0.003);
+    ctx.strokeStyle = "rgba(255, 244, 200, 0.9)";
+    ctx.stroke();
+}
+
+/* ==========================================================
+   GOLD RING
+   A fixed (non-rotating) metallic gold band around the
+   artwork, with small lights that chase while the wheel spins.
+========================================================== */
+
+const RING_LIGHTS = 16;
+
+function getRingWidth(){
+    return Math.max(12, wheelSize * 0.052);
+}
+
+function drawGoldRing(outerRadius, ringWidth){
+
+    const innerRadius = outerRadius - ringWidth;
+
+    ctx.save();
+
+    /* Soft warm glow behind the ring. */
+    ctx.shadowColor = "rgba(243, 187, 23, 0.45)";
+    ctx.shadowBlur = wheelSize * 0.03;
+
+    /* Metallic gold: a diagonal gradient with bright highlights. */
+    const gold = ctx.createLinearGradient(
+        centerX - outerRadius, centerY - outerRadius,
+        centerX + outerRadius, centerY + outerRadius
+    );
+    gold.addColorStop(0.00, "#fff1b8");
+    gold.addColorStop(0.18, "#e2b23a");
+    gold.addColorStop(0.36, "#8a6114");
+    gold.addColorStop(0.50, "#f6d873");
+    gold.addColorStop(0.64, "#b7861e");
+    gold.addColorStop(0.82, "#fbe7a1");
+    gold.addColorStop(1.00, "#7a5410");
+
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, outerRadius, 0, Math.PI * 2);
+    ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2, true);
+    ctx.fillStyle = gold;
+    ctx.fill("evenodd");
+
+    ctx.restore();
+
+    /* Rounded, bevelled band: light at the middle, darker at the edges. */
+    const bevel = ctx.createRadialGradient(
+        centerX, centerY, innerRadius,
+        centerX, centerY, outerRadius
+    );
+    bevel.addColorStop(0.00, "rgba(60, 35, 0, 0.45)");
+    bevel.addColorStop(0.30, "rgba(255, 245, 210, 0.10)");
+    bevel.addColorStop(0.55, "rgba(255, 250, 225, 0.30)");
+    bevel.addColorStop(0.80, "rgba(255, 245, 210, 0.05)");
+    bevel.addColorStop(1.00, "rgba(60, 35, 0, 0.55)");
+
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, outerRadius, 0, Math.PI * 2);
+    ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2, true);
+    ctx.fillStyle = bevel;
+    ctx.fill("evenodd");
+
+    /* Fine dark rim on the outside edge. */
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, outerRadius - 0.75, 0, Math.PI * 2);
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "rgba(70, 45, 5, 0.9)";
+    ctx.stroke();
+
+    drawRingLights(outerRadius - ringWidth / 2, ringWidth);
+}
+
+function drawRingLights(lightRadius, ringWidth){
+
+    const size = ringWidth * 0.2;
+    // While spinning, lights take turns (chasing effect); at rest all glow.
+    const phase = spinning ? Math.floor(wheelRotation / (Math.PI / 6)) % 2 : -1;
+
+    for(let i = 0; i < RING_LIGHTS; i++){
+
+        const angle = (i / RING_LIGHTS) * Math.PI * 2 + Math.PI / RING_LIGHTS;
+        const x = centerX + Math.cos(angle) * lightRadius;
+        const y = centerY + Math.sin(angle) * lightRadius;
+        const lit = phase === -1 || i % 2 === phase;
+
+        ctx.save();
+
+        if(lit){
+            ctx.shadowColor = "rgba(255, 236, 150, 0.95)";
+            ctx.shadowBlur = size * 2.4;
+        }
+
+        const bulb = ctx.createRadialGradient(
+            x - size * 0.3, y - size * 0.3, size * 0.1,
+            x, y, size
+        );
+
+        if(lit){
+            bulb.addColorStop(0, "#ffffff");
+            bulb.addColorStop(0.45, "#fff3c0");
+            bulb.addColorStop(1, "#e0a91f");
+        }
+        else{
+            bulb.addColorStop(0, "#e9cf86");
+            bulb.addColorStop(1, "#8a6114");
+        }
+
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fillStyle = bulb;
+        ctx.fill();
+
+        ctx.restore();
+    }
 }
 
 function drawLoadingWheel(){
