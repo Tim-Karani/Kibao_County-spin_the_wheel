@@ -1,84 +1,87 @@
 # Spin the Wheel — County Kibao
 
-A spin-the-wheel game for County Kibao activations. Players tap the wheel (or **SPIN THE WHEEL**); the result is drawn on the Netlify server so **every device, in every location, shares the same odds, stock and statistics**.
+A spin-the-wheel game for County Kibao weekend activations. Every result is drawn on the Netlify server, so all tablets share the same odds and settings, and the admin page sees every spin.
 
-- Player page: `https://YOUR-SITE.netlify.app/`
-- Admin page: `https://YOUR-SITE.netlify.app/admin.html` (password protected)
+- Player page: `https://spin-the-wheel-county-kibao.netlify.app/`
+- Admin page: `https://spin-the-wheel-county-kibao.netlify.app/admin.html` (password protected)
 
 ---
 
-## Odds
+## Prizes, odds and daily stock
 
-| Slice | Chance per spin |
-|---|---|
-| Bucket Hat | 1.25% |
-| T-Shirt | 1.25% |
-| Wristband | 1.25% |
-| Tumbler | 1.25% |
-| **Any prize** | **5% (about 1 in 20 spins)** |
-| Try Again Next Time (4 slices × 23.75%) | 95% |
+| Slice | Brand | Chance per spin | About 1 in… | Daily stock per device |
+|---|---|---|---|---|
+| County Bucket Hat | County | 1.25% | 80 | 10 |
+| Kibao T-Shirt | Kibao | 1.25% | 80 | 20 |
+| County T-Shirt | County | 1.25% | 80 | 20 |
+| Kibao Tumbler | Kibao | 1.25% | 80 | 20 |
+| **Any gift** | | **5%** | **20** | **70** |
+| Try Again Next Time (4 slices × 23.75%) | | 95% | — | — |
 
-Odds can be changed on the admin page (all eight slices must add up to 100%).
-**Restore default odds** puts these values back.
+- **Each tablet counts as one outlet.** Every registered device gets the full daily stock above.
+- **Stock refills every day at 6:00 am** (Nairobi time). A late Saturday night counts as Saturday until 6:00 am Sunday. Unused gifts do not carry over.
+- When a device has given out its daily stock of a gift (or the gift is paused), anyone on that device who would have won it gets **Try Again**. The other gifts keep their own odds.
+- Odds and daily stock can be changed on the admin page. They apply to every device.
 
-## Stock
+> The County T-Shirt uses slice 5. Until the new artwork is added, that slice still shows the old Wristband picture. Replace `assets/images/wheel-reference.png` with the updated wheel artwork (same size and slice positions) to change it.
 
-- Each prize has a **Stock left** number on the admin page. Leave it blank for unlimited.
-- Every prize won on any device takes 1 off the shared stock, so stock is never given out twice, even when several tablets spin at the same moment.
-- When a prize reaches 0, or you untick **In play**, anyone who would have won it gets **Try Again** instead. The other prizes keep their own odds, so the overall win rate drops a little while a prize is out.
-- To restock, type the new number in **Stock left** and press **Save changes**.
+## Setting up a tablet (once per device)
+
+1. Open the game link on the tablet.
+2. Enter the **setup code** (from Netlify, see below). Optionally type a name such as "Tablet 3 – Nairobi North".
+3. Tap **Start**. The tablet remembers it, so staff never type the code again.
+
+Tips:
+- Use the tablet's normal browser (not private/incognito mode), and don't clear its browsing data. Otherwise it forgets it was set up and counts as a new device.
+- Customers who open the link on their own phones can't spin without the setup code.
 
 ## Admin page
 
-- Log in with the password you set in Netlify (see below). The server checks it on every request; the page forgets it when the tab is closed.
-- Live totals: spins, wins, losses (Try Again) and actual win rate. The page refreshes every 15 seconds.
-- Prize table: odds, in play on/off, stock left, number given out, status (In play / Low stock / Out of stock / Paused).
-- Spin history: latest 1,000 spins from all devices, searchable, exportable to CSV (Excel).
-- Reset: clear stats & history, or restore default odds. Stock is kept in both cases.
-
-## Sound
-
-Spin, pointer tick, win, lose and button sounds are in `assets/sounds/`. Sound starts after the first tap (browsers block it before that). The speaker button in the top-right corner mutes it on that device. To use your own sounds, replace the MP3 files and keep the same file names.
+- **Day picker:** see any day's results (each day runs 6:00 am to 6:00 am).
+- **Totals for the day:** devices active, spins, wins, losses, actual win rate, plus all-time totals.
+- **Prizes, odds & daily stock:** change chances (must total 100%), pause a gift, change daily stock per device.
+- **Devices (outlets):** every tablet with today's gifts given / daily stock. Actions:
+  - **Rename** – give it a recognisable name.
+  - **Refill today** – give that device a fresh daily stock (e.g. if stock was added).
+  - **Disable / Enable** – stop a lost or misused device from spinning.
+- **Spin history:** every spin for the day with device, prize and outcome; search, filter, and **Export CSV** (per-device summary plus every spin) for reporting.
 
 ---
 
-## Deploying on Netlify (via GitHub)
+## Netlify settings
 
-The shared stock and stats need Netlify Functions, which do **not** run on a drag-and-drop upload. Deploy from GitHub instead:
+Two environment variables (Project configuration → Environment variables → Add a variable):
 
-1. **Upload the files to GitHub.** Put the contents of this folder in your repository (`Tim-Karani/Kibao_County-spin_the_wheel`), replacing the old files. Make sure `netlify.toml`, `package.json` and the `netlify/` folder are included.
-2. **Connect the repository to Netlify.**
-   - Using your existing site (keeps the same web address): *Site configuration → Build & deploy → Continuous deployment → Link repository*, then pick the repository.
-   - Or create a new site: *Add new site → Import an existing project → GitHub*.
-   - Leave the build settings as they are; `netlify.toml` fills them in.
-3. **Set the admin password.** *Site configuration → Environment variables → Add a variable*:
-   - Key: `ADMIN_PASSWORD`
-   - Value: a strong password (at least 12 characters, not a word that's easy to guess).
-4. **Deploy.** *Deploys → Trigger deploy → Deploy site*. (Needed after you add or change the password.)
-5. Open `/admin.html`, log in, enter your stock numbers and press **Save changes**.
+| Key | What it is |
+|---|---|
+| `ADMIN_PASSWORD` | Password for the admin page |
+| `SETUP_CODE` | Code staff type once on each tablet (e.g. `KIBAO2026`). Not case sensitive. |
 
-Every time you push changes to GitHub, Netlify redeploys automatically. Stock, odds and stats are kept between deploys (they are stored in Netlify Blobs, not in the code).
+After adding or changing a variable: **Deploys → Trigger deploy → Deploy project**.
 
-### Good to know
+Changing `SETUP_CODE` later does not log out tablets that are already set up; it only affects new ones.
 
-- Each device needs an internet connection to spin. If a device can't reach the server, the player sees *"Connection problem. Please check the internet and spin again."* and no spin happens.
-- Netlify Functions and Blobs are included in Netlify's free plan, with monthly usage limits; a typical activation uses far less.
+## Deploying updates
+
+The site deploys from GitHub (`Tim-Karani/Kibao_County-spin_the_wheel`). Upload the new files to the repository and Netlify redeploys automatically. Settings, devices and history are stored in Netlify Blobs and are kept between deploys.
+
+Each tablet needs an internet connection to spin. If it can't reach the server, the player sees *"Connection problem. Please check the internet and spin again."* and no spin happens.
 
 ## Project layout
 
 ```
-index.html              Player page
+index.html              Player page (with one-time setup screen)
 admin.html              Admin page
 css/                    Styles
-js/wheel.js             Wheel drawing and spin animation (fixed slice table)
-js/app.js               Player controller, asks the server for each result
+js/wheel.js             Wheel drawing, gold ring and spin animation
+js/app.js               Player controller: device setup, asks the server for each result
 js/popup.js             Result popup
 js/sounds.js            Sound playback and mute button
 js/admin.js             Admin dashboard
 assets/images/          Wheel artwork, logos, prize images
 assets/sounds/          Game sounds
-netlify/functions/      spin.mjs (/api/spin) and admin.mjs (/api/admin)
-netlify/lib/state.mjs   Odds, stock, stats and default settings
+netlify/functions/      spin.mjs (/api/spin), device.mjs (/api/device), admin.mjs (/api/admin)
+netlify/lib/state.mjs   Odds, daily stock, 6:00 am refill, devices and reports
 netlify.toml            Netlify settings
 package.json            Server dependency (@netlify/blobs)
 ```

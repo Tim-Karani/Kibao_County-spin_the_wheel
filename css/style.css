@@ -314,3 +314,117 @@ body{
         border-top-width:17px;
     }
 }
+
+/* ==========================================================
+   ONE-TIME DEVICE SETUP
+========================================================== */
+
+.setup-overlay{
+    position:fixed;
+    inset:0;
+    z-index:3000;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px 16px;
+    background:#000000 radial-gradient(circle at 50% 20%, #3a0717 0%, #000000 70%);
+    overflow-y:auto;
+}
+
+.setup-overlay.hidden{
+    display:none;
+}
+
+.setup-card{
+    width:min(400px, 100%);
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    padding:30px 26px;
+    border-radius:22px;
+    background:#ffffff;
+    color:#111111;
+    box-shadow:0 24px 70px rgba(0,0,0,.55);
+    border-top:6px solid #F3BB17;
+}
+
+.setup-logo{
+    width:64px;
+    height:64px;
+    object-fit:contain;
+    align-self:center;
+}
+
+.setup-card h1{
+    font-size:22px;
+    text-align:center;
+}
+
+.setup-card > p{
+    color:#555555;
+    font-size:14px;
+    line-height:1.5;
+    text-align:center;
+    margin-bottom:6px;
+}
+
+.setup-card label{
+    font-size:14px;
+    font-weight:700;
+    margin-top:6px;
+}
+
+.setup-card label span{
+    font-weight:400;
+    color:#777777;
+}
+
+.setup-card input{
+    padding:13px 14px;
+    border:1.5px solid #dddddd;
+    border-radius:12px;
+    font-size:16px;
+}
+
+#setupCode{
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    font-weight:700;
+}
+
+.setup-card input:focus{
+    outline:2px solid #F3BB17;
+    border-color:#771030;
+}
+
+#setupBtn{
+    margin-top:12px;
+    padding:14px;
+    border:0;
+    border-radius:999px;
+    background:#771030;
+    color:#ffffff;
+    font-size:15px;
+    font-weight:900;
+    letter-spacing:.06em;
+    cursor:pointer;
+}
+
+#setupBtn:disabled{
+    opacity:.5;
+    cursor:wait;
+}
+
+.setup-card .setup-error{
+    min-height:20px;
+    color:#DB1212;
+    font-size:14px;
+    font-weight:700;
+    text-align:center;
+}
+
+.setup-card.blocked input,
+.setup-card.blocked label,
+.setup-card.blocked #setupBtn{
+    display:none;
+}

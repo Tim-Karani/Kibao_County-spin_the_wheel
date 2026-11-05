@@ -39,6 +39,21 @@
 
     </main>
 
+    <!-- One-time device setup (shown only until this tablet is registered). -->
+    <div class="setup-overlay hidden" id="setupScreen">
+        <form class="setup-card" id="setupForm" autocomplete="off">
+            <img src="assets/images/logo/kk.png" alt="" class="setup-logo">
+            <h1 id="setupTitle">Set up this device</h1>
+            <p id="setupText">Enter the setup code from your team leader. You only need to do this once on this tablet.</p>
+            <label for="setupCode">Setup code</label>
+            <input id="setupCode" type="text" inputmode="text" autocapitalize="characters" spellcheck="false" required>
+            <label for="setupName">Device name <span>(optional)</span></label>
+            <input id="setupName" type="text" maxlength="60" placeholder="e.g. Tablet 3 – Nairobi North">
+            <button type="submit" id="setupBtn">Start</button>
+            <p class="setup-error" id="setupError" role="alert"></p>
+        </form>
+    </div>
+
     <div class="popup-overlay hidden" id="winnerPopup">
         <div class="popup-card" role="dialog" aria-modal="true" aria-label="Spin result">
             <p class="popup-message" id="popupMessage"></p>

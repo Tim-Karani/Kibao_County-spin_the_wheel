@@ -120,7 +120,7 @@ body{
 
 .stats-grid{
     display:grid;
-    grid-template-columns:repeat(4, minmax(0,1fr));
+    grid-template-columns:repeat(5, minmax(0,1fr));
     gap:16px;
 }
 .stat-card{
@@ -212,6 +212,32 @@ td.num, .num{ font-variant-numeric:tabular-nums; }
 
 .empty-row td{ text-align:center; color:var(--muted); padding:28px; }
 
+/* ---------------- Day picker & sections ---------------- */
+
+.day-picker{ display:flex; align-items:center; gap:8px; color:#cfc5c8; font-size:12px; }
+.day-picker select{
+    padding:9px 12px; border-radius:10px; border:0; font:600 14px "Poppins", Arial, sans-serif;
+    background:#fff; color:var(--text);
+}
+.section-title{ font-size:18px; margin-bottom:12px; }
+.all-time{ color:var(--muted); font-size:13px; margin-top:10px; }
+
+/* ---------------- Devices ---------------- */
+
+.devices-wrapper{ max-height:560px; overflow-y:auto; }
+.device-table td{ white-space:nowrap; }
+.device-name{ font-weight:600; }
+.device-code{ color:var(--muted); font-size:12px; }
+.gift-count{ font-variant-numeric:tabular-nums; }
+.gift-count.out{ color:var(--red); font-weight:700; }
+.gift-count.low{ color:#8a5a00; font-weight:600; }
+.row-actions{ display:flex; gap:6px; }
+.btn-small{ padding:6px 10px; font-size:12px; border-radius:8px; }
+.btn-text-danger{ background:#fff; color:var(--red); border:1.5px solid #f0c4c4; }
+.btn-text-danger:hover:not(:disabled){ background:#fdecec; }
+tr.is-blocked td{ opacity:.55; }
+tr.is-blocked td.actions-cell{ opacity:1; }
+
 /* ---------------- Toast ---------------- */
 
 .toast{
@@ -225,13 +251,18 @@ td.num, .num{ font-variant-numeric:tabular-nums; }
 
 /* ---------------- Small screens ---------------- */
 
-@media (max-width:900px){
+@media (max-width:1000px){
+    .stats-grid{ grid-template-columns:repeat(3, minmax(0,1fr)); }
+}
+
+@media (max-width:700px){
     .stats-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
 }
 
 @media (max-width:640px){
     .admin-header{ padding:12px 16px; flex-wrap:wrap; }
     .last-updated{ display:none; }
+    .day-picker span{ display:none; }
     .dashboard{ padding:16px 16px 48px; gap:16px; }
     .dashboard-card{ padding:18px 16px; }
     .stat-card p{ font-size:24px; }

@@ -35,13 +35,13 @@ const POINTER_ANGLE = -Math.PI / 2;
  * the result always matches the picture under the pointer.
  */
 const DESIGN_SLOTS = [
-    { id: 1, angle: -3 * Math.PI / 8, name: "Bucket Hat",          type: "win"  },
+    { id: 1, angle: -3 * Math.PI / 8, name: "County Bucket Hat",   type: "win"  },
     { id: 2, angle:     -Math.PI / 8, name: "Try Again Next Time", type: "lose" },
-    { id: 3, angle:      Math.PI / 8, name: "T-Shirt",             type: "win"  },
+    { id: 3, angle:      Math.PI / 8, name: "Kibao T-Shirt",       type: "win"  },
     { id: 4, angle:  3 * Math.PI / 8, name: "Try Again Next Time", type: "lose" },
-    { id: 5, angle:  5 * Math.PI / 8, name: "Wristband",           type: "win"  },
+    { id: 5, angle:  5 * Math.PI / 8, name: "County T-Shirt",      type: "win"  },
     { id: 6, angle:  7 * Math.PI / 8, name: "Try Again Next Time", type: "lose" },
-    { id: 7, angle:  9 * Math.PI / 8, name: "Tumbler",             type: "win"  },
+    { id: 7, angle:  9 * Math.PI / 8, name: "Kibao Tumbler",       type: "win"  },
     { id: 8, angle: 11 * Math.PI / 8, name: "Try Again Next Time", type: "lose" }
 ];
 

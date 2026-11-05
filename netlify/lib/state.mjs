@@ -1,144 +1,248 @@
 /* ==========================================================
    SPIN2WIN - COUNTY KIBAO
-   Shared game state (stored in Netlify Blobs)
+   Shared game data (stored in Netlify Blobs)
 
-   Every device talks to the same Netlify site, so prize odds,
-   stock and statistics live here, on the server, instead of in
-   each browser.
+   - Each registered device (tablet) counts as one outlet.
+   - Every device gets the full daily stock of each prize.
+   - Stock refills every day at 06:00 Nairobi time; unused
+     gifts do not carry over.
+   - Odds and daily stock are set once (admin page) and apply
+     to every device.
 ========================================================== */
 
 import { getStore } from "@netlify/blobs";
-import { randomInt, createHash, timingSafeEqual } from "node:crypto";
+import { randomInt, randomBytes, createHash, timingSafeEqual } from "node:crypto";
 
 const STORE_NAME = "kibao-spin-the-wheel";
-const STATE_KEY = "state-v1";
-const HISTORY_LIMIT = 1000;
+const CONFIG_KEY = "config-v2";
+const DEVICE_PREFIX = "device/";
+const DAY_HISTORY_LIMIT = 3000;
+
+/* Business day: Nairobi is UTC+3 all year (no daylight saving).
+   The day changes at 06:00, so a late Saturday night still counts
+   as Saturday. */
+export const TIMEZONE_OFFSET_HOURS = 3;
+export const REFILL_HOUR = 6;
 
 /*
  * The wheel artwork has eight fixed slices, numbered clockwise
- * from the slice just right of the pointer (Bucket Hat).
- * Names and types are tied to the artwork and cannot be changed
- * from the admin page, so a saved setting can never point a
- * result at the wrong picture.
- *
- * Default odds: 1.25% per prize (5% total), 23.75% per
- * Try Again slice (95% total).
- * stock: null = unlimited, a number = items left to give away.
+ * from the slice just right of the pointer.
+ * chance: % per spin. dailyStock: gifts per device per day
+ * (null = unlimited).
  */
 export const DEFAULT_PRIZES = [
-    { designSlot: 1, name: "Bucket Hat",          type: "win",  chance: 1.25,  active: true, stock: null, given: 0 },
-    { designSlot: 2, name: "Try Again Next Time", type: "lose", chance: 23.75, active: true, stock: null, given: 0 },
-    { designSlot: 3, name: "T-Shirt",             type: "win",  chance: 1.25,  active: true, stock: null, given: 0 },
-    { designSlot: 4, name: "Try Again Next Time", type: "lose", chance: 23.75, active: true, stock: null, given: 0 },
-    { designSlot: 5, name: "Wristband",           type: "win",  chance: 1.25,  active: true, stock: null, given: 0 },
-    { designSlot: 6, name: "Try Again Next Time", type: "lose", chance: 23.75, active: true, stock: null, given: 0 },
-    { designSlot: 7, name: "Tumbler",             type: "win",  chance: 1.25,  active: true, stock: null, given: 0 },
-    { designSlot: 8, name: "Try Again Next Time", type: "lose", chance: 23.75, active: true, stock: null, given: 0 }
+    { designSlot: 1, name: "County Bucket Hat",   brand: "County", type: "win",  chance: 1.25,  active: true, dailyStock: 10 },
+    { designSlot: 2, name: "Try Again Next Time", brand: "",       type: "lose", chance: 23.75, active: true, dailyStock: null },
+    { designSlot: 3, name: "Kibao T-Shirt",       brand: "Kibao",  type: "win",  chance: 1.25,  active: true, dailyStock: 20 },
+    { designSlot: 4, name: "Try Again Next Time", brand: "",       type: "lose", chance: 23.75, active: true, dailyStock: null },
+    { designSlot: 5, name: "County T-Shirt",      brand: "County", type: "win",  chance: 1.25,  active: true, dailyStock: 20 },
+    { designSlot: 6, name: "Try Again Next Time", brand: "",       type: "lose", chance: 23.75, active: true, dailyStock: null },
+    { designSlot: 7, name: "Kibao Tumbler",       brand: "Kibao",  type: "win",  chance: 1.25,  active: true, dailyStock: 20 },
+    { designSlot: 8, name: "Try Again Next Time", brand: "",       type: "lose", chance: 23.75, active: true, dailyStock: null }
 ];
 
-function emptyStats(){
-    return {
-        totalSpins: 0,
-        totalWins: 0,
-        totalLosses: 0,
-        outOfStockHits: 0,
-        prizeCounts: {},
-        since: new Date().toISOString()
-    };
-}
-
-export function defaultState(){
-    return {
-        version: 1,
-        prizes: DEFAULT_PRIZES.map(p => ({ ...p })),
-        stats: emptyStats(),
-        history: [],
-        updatedAt: new Date().toISOString()
-    };
-}
-
-/* Fill in anything missing so older or partial data never breaks the game. */
-function normalizeState(raw){
-
-    const state = defaultState();
-
-    if(!raw || typeof raw !== "object"){
-        return state;
-    }
-
-    const saved = Array.isArray(raw.prizes) ? raw.prizes : [];
-
-    state.prizes = DEFAULT_PRIZES.map(def => {
-        const found = saved.find(p => Number(p.designSlot) === def.designSlot) || {};
-        return {
-            ...def,
-            chance: isFiniteNumber(found.chance) ? Number(found.chance) : def.chance,
-            active: typeof found.active === "boolean" ? found.active : def.active,
-            stock: found.stock === null || found.stock === undefined
-                ? null
-                : Math.max(0, Math.floor(Number(found.stock)) || 0),
-            given: Math.max(0, Math.floor(Number(found.given)) || 0)
-        };
-    });
-
-    state.stats = { ...emptyStats(), ...(raw.stats || {}) };
-    state.stats.prizeCounts = { ...(raw.stats && raw.stats.prizeCounts) };
-    state.history = Array.isArray(raw.history) ? raw.history.slice(0, HISTORY_LIMIT) : [];
-    state.updatedAt = raw.updatedAt || state.updatedAt;
-
-    return state;
-}
-
-function isFiniteNumber(value){
-    return value !== null && value !== "" && Number.isFinite(Number(value));
-}
+/* ---------------- Store helpers ---------------- */
 
 function store(){
     return getStore({ name: STORE_NAME, consistency: "strong" });
 }
 
-export async function readState(){
-    const entry = await store().get(STATE_KEY, { type: "json" });
-    return normalizeState(entry);
+function sleep(ms){
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 /*
- * Read-modify-write with optimistic locking. If two devices
- * spin at the same moment, one write is rejected and retried,
- * so stock can never be given out twice.
+ * Read-modify-write one blob with optimistic locking: if another
+ * request changed it in between, the write is rejected and retried.
+ * mutator(data) may return a value; returning undefined data is not
+ * allowed (throw to abort).
  */
-export async function updateState(mutator){
+async function updateBlob(key, normalize, mutator){
 
     const blobs = store();
 
     for(let attempt = 0; attempt < 12; attempt++){
 
-        const entry = await blobs.getWithMetadata(STATE_KEY, { type: "json" });
-        const state = normalizeState(entry ? entry.data : null);
-        const result = mutator(state);
-
-        state.updatedAt = new Date().toISOString();
+        const entry = await blobs.getWithMetadata(key, { type: "json" });
+        const data = normalize(entry ? entry.data : null);
+        const result = mutator(data);
 
         const options = entry && entry.etag
             ? { onlyIfMatch: entry.etag }
             : { onlyIfNew: true };
 
-        const write = await blobs.setJSON(STATE_KEY, state, options);
+        const write = await blobs.setJSON(key, data, options);
 
         if(write && write.modified === false){
-            await sleep(40 + Math.floor(Math.random() * 120) * (attempt + 1));
+            await sleep(30 + Math.floor(Math.random() * 100) * (attempt + 1));
             continue;
         }
 
-        return { state, result };
+        return { data, result };
     }
 
     throw new Error("The game is busy. Please try again.");
 }
 
-function sleep(ms){
-    return new Promise(resolve => setTimeout(resolve, ms));
+/* ---------------- Time ---------------- */
+
+/* The business day (YYYY-MM-DD) a moment belongs to. */
+export function dayKey(time = Date.now()){
+    const shifted = new Date(time + (TIMEZONE_OFFSET_HOURS - REFILL_HOUR) * 3600 * 1000);
+    return shifted.toISOString().slice(0, 10);
 }
+
+/* When the current business day ends (next refill), as ISO time. */
+export function nextRefillTime(time = Date.now()){
+    const today = dayKey(time);
+    const start = Date.parse(`${today}T00:00:00Z`) - (TIMEZONE_OFFSET_HOURS - REFILL_HOUR) * 3600 * 1000;
+    return new Date(start + 24 * 3600 * 1000).toISOString();
+}
+
+/* ---------------- Config (odds + daily stock) ---------------- */
+
+function isFiniteNumber(value){
+    return value !== null && value !== "" && value !== undefined && Number.isFinite(Number(value));
+}
+
+function normalizeConfig(raw){
+
+    const saved = raw && Array.isArray(raw.prizes) ? raw.prizes : [];
+
+    return {
+        version: 2,
+        prizes: DEFAULT_PRIZES.map(def => {
+            const found = saved.find(p => Number(p.designSlot) === def.designSlot) || {};
+            return {
+                ...def,
+                chance: isFiniteNumber(found.chance) ? Number(found.chance) : def.chance,
+                active: typeof found.active === "boolean" ? found.active : def.active,
+                dailyStock: def.type !== "win"
+                    ? null
+                    : found.dailyStock === null
+                        ? null
+                        : isFiniteNumber(found.dailyStock)
+                            ? Math.max(0, Math.floor(Number(found.dailyStock)))
+                            : def.dailyStock
+            };
+        }),
+        updatedAt: (raw && raw.updatedAt) || null
+    };
+}
+
+export async function readConfig(){
+    const raw = await store().get(CONFIG_KEY, { type: "json" });
+    return normalizeConfig(raw);
+}
+
+export async function updateConfig(mutator){
+    const { data } = await updateBlob(CONFIG_KEY, normalizeConfig, config => {
+        mutator(config);
+        config.updatedAt = new Date().toISOString();
+    });
+    return data;
+}
+
+/* ---------------- Devices ---------------- */
+
+const DEVICE_ID_PATTERN = /^d_[a-f0-9]{24}$/;
+
+export function isValidDeviceId(id){
+    return typeof id === "string" && DEVICE_ID_PATTERN.test(id);
+}
+
+export function shortCode(id){
+    return id.slice(-4).toUpperCase();
+}
+
+function emptyDay(){
+    return { spins: 0, wins: 0, losses: 0, outOfStockHits: 0, given: {}, history: [] };
+}
+
+function normalizeDevice(raw){
+
+    if(!raw || typeof raw !== "object"){
+        return null;
+    }
+
+    const days = raw.days && typeof raw.days === "object" ? raw.days : {};
+
+    Object.keys(days).forEach(key => {
+        days[key] = { ...emptyDay(), ...days[key] };
+        days[key].given = { ...days[key].given };
+        days[key].history = Array.isArray(days[key].history) ? days[key].history : [];
+    });
+
+    return {
+        id: raw.id,
+        name: typeof raw.name === "string" ? raw.name : "",
+        blocked: Boolean(raw.blocked),
+        createdAt: raw.createdAt || null,
+        lastSeen: raw.lastSeen || null,
+        days
+    };
+}
+
+export async function readDevice(id){
+    if(!isValidDeviceId(id)){
+        return null;
+    }
+    const raw = await store().get(DEVICE_PREFIX + id, { type: "json" });
+    return normalizeDevice(raw);
+}
+
+export async function createDevice(name){
+
+    const id = "d_" + randomBytes(12).toString("hex");
+    const now = new Date().toISOString();
+    const device = {
+        id,
+        name: String(name || "").trim().slice(0, 60),
+        blocked: false,
+        createdAt: now,
+        lastSeen: now,
+        days: {}
+    };
+
+    const write = await store().setJSON(DEVICE_PREFIX + id, device, { onlyIfNew: true });
+
+    if(write && write.modified === false){
+        throw new Error("Could not register this device. Please try again.");
+    }
+
+    return device;
+}
+
+/* Update a device; mutator receives the device (never null). */
+export async function updateDevice(id, mutator){
+
+    if(!isValidDeviceId(id)){
+        throw Object.assign(new Error("Unknown device."), { code: "unknown" });
+    }
+
+    const { data, result } = await updateBlob(DEVICE_PREFIX + id, normalizeDevice, device => {
+        if(!device){
+            throw Object.assign(new Error("Unknown device."), { code: "unknown" });
+        }
+        return mutator(device);
+    });
+
+    return { device: data, result };
+}
+
+export async function listDevices(){
+
+    const blobs = store();
+    const { blobs: entries = [] } = await blobs.list({ prefix: DEVICE_PREFIX });
+
+    const devices = await Promise.all(
+        entries.map(entry => blobs.get(entry.key, { type: "json" }).then(normalizeDevice))
+    );
+
+    return devices.filter(Boolean);
+}
+
+/* ---------------- Spinning ---------------- */
 
 /* Cryptographically random number in [0, max). */
 function randomBelow(max){
@@ -165,60 +269,71 @@ function pickWeighted(list){
     return list[list.length - 1];
 }
 
-export function prizeAvailable(prize){
-    return prize.type !== "win" || (prize.active && (prize.stock === null || prize.stock > 0));
+export function stockLeft(prize, day){
+    if(prize.type !== "win" || prize.dailyStock === null){
+        return null;
+    }
+    return Math.max(0, prize.dailyStock - (day.given[prize.designSlot] || 0));
+}
+
+function prizeAvailable(prize, day){
+    if(prize.type !== "win"){
+        return true;
+    }
+    if(!prize.active){
+        return false;
+    }
+    const left = stockLeft(prize, day);
+    return left === null || left > 0;
 }
 
 /*
- * One spin. Odds are drawn exactly as configured. If the chosen
- * prize is paused or out of stock, the player gets a Try Again
- * slice instead, so a prize's own odds never grow when another
- * prize runs out.
+ * One spin on one device. Odds are drawn exactly as configured. If
+ * the chosen prize is paused or this device has given out today's
+ * stock, the player gets a Try Again slice instead.
  */
-export function drawSpin(state){
+export function drawSpin(config, device, time = Date.now()){
 
-    const drawn = pickWeighted(state.prizes);
+    const today = dayKey(time);
+
+    if(!device.days[today]){
+        device.days[today] = emptyDay();
+    }
+
+    const day = device.days[today];
+    const drawn = pickWeighted(config.prizes);
     let result = drawn;
-    let note = "";
+    let unavailable = false;
 
-    if(!prizeAvailable(drawn)){
-        const lossSlices = state.prizes.filter(p => p.type !== "win");
-        result = pickWeighted(lossSlices);
-        note = `${drawn.name} unavailable`;
-        state.stats.outOfStockHits++;
+    if(!prizeAvailable(drawn, day)){
+        result = pickWeighted(config.prizes.filter(p => p.type !== "win"));
+        unavailable = true;
+        day.outOfStockHits++;
     }
 
     if(result.type === "win"){
-        if(result.stock !== null){
-            result.stock = Math.max(0, result.stock - 1);
-        }
-        result.given++;
-        state.stats.totalWins++;
+        day.given[result.designSlot] = (day.given[result.designSlot] || 0) + 1;
+        day.wins++;
     }
     else{
-        state.stats.totalLosses++;
+        day.losses++;
     }
 
-    state.stats.totalSpins++;
-    state.stats.prizeCounts[result.name] = (state.stats.prizeCounts[result.name] || 0) + 1;
+    day.spins++;
 
-    const entry = {
-        id: Date.now().toString(36) + randomInt(0, 1e6).toString(36),
-        time: new Date().toISOString(),
-        designSlot: result.designSlot,
-        prize: result.name,
-        type: result.type
-    };
+    const entry = { t: new Date(time).toISOString(), s: result.designSlot };
 
-    if(note){
-        entry.note = note;
+    if(unavailable){
+        entry.u = drawn.designSlot;
     }
 
-    state.history.unshift(entry);
+    day.history.unshift(entry);
 
-    if(state.history.length > HISTORY_LIMIT){
-        state.history.length = HISTORY_LIMIT;
+    if(day.history.length > DAY_HISTORY_LIMIT){
+        day.history.length = DAY_HISTORY_LIMIT;
     }
+
+    device.lastSeen = new Date(time).toISOString();
 
     return {
         designSlot: result.designSlot,
@@ -227,7 +342,13 @@ export function drawSpin(state){
     };
 }
 
-/* ---------------- Admin helpers ---------------- */
+/* ---------------- Admin ---------------- */
+
+function safeEqual(given, expected){
+    const a = createHash("sha256").update(String(given)).digest();
+    const b = createHash("sha256").update(String(expected)).digest();
+    return timingSafeEqual(a, b);
+}
 
 export function checkPassword(request){
 
@@ -237,29 +358,39 @@ export function checkPassword(request){
         return { ok: false, status: 503, error: "ADMIN_PASSWORD has not been set in Netlify." };
     }
 
-    const given = request.headers.get("x-admin-password") || "";
-    const a = createHash("sha256").update(given).digest();
-    const b = createHash("sha256").update(expected).digest();
-
-    if(!timingSafeEqual(a, b)){
+    if(!safeEqual(request.headers.get("x-admin-password") || "", expected)){
         return { ok: false, status: 401, error: "Wrong password." };
     }
 
     return { ok: true };
 }
 
-/*
- * Apply admin edits. Only chance, active and stock can change.
- * Stock is only touched when the admin actually typed a new
- * value, so spins happening meanwhile are not overwritten.
- */
-export function applyPrizeEdits(state, edits){
+/* Setup code check: not case sensitive, spaces ignored, so it is
+   easy to type on a tablet. */
+export function checkSetupCode(code){
+
+    const expected = process.env.SETUP_CODE || "";
+
+    if(!expected){
+        return { ok: false, status: 503, error: "SETUP_CODE has not been set in Netlify." };
+    }
+
+    const clean = value => String(value || "").replace(/\s+/g, "").toUpperCase();
+
+    if(!safeEqual(clean(code), clean(expected))){
+        return { ok: false, status: 401, error: "That setup code is not correct." };
+    }
+
+    return { ok: true };
+}
+
+export function applyPrizeEdits(config, edits){
 
     if(!Array.isArray(edits)){
         throw new Error("No prize settings were sent.");
     }
 
-    const next = state.prizes.map(p => ({ ...p }));
+    const next = config.prizes.map(p => ({ ...p }));
 
     for(const edit of edits){
 
@@ -281,16 +412,16 @@ export function applyPrizeEdits(state, edits){
             prize.active = Boolean(edit.active);
         }
 
-        if("stock" in edit && prize.type === "win"){
-            if(edit.stock === null || edit.stock === ""){
-                prize.stock = null;
+        if("dailyStock" in edit && prize.type === "win"){
+            if(edit.dailyStock === null || edit.dailyStock === ""){
+                prize.dailyStock = null;
             }
             else{
-                const stock = Number(edit.stock);
+                const stock = Number(edit.dailyStock);
                 if(!Number.isInteger(stock) || stock < 0){
-                    throw new Error(`${prize.name}: stock must be a whole number (or blank for unlimited).`);
+                    throw new Error(`${prize.name}: daily stock must be a whole number (or blank for unlimited).`);
                 }
-                prize.stock = stock;
+                prize.dailyStock = stock;
             }
         }
     }
@@ -298,26 +429,108 @@ export function applyPrizeEdits(state, edits){
     const total = next.reduce((sum, p) => sum + p.chance, 0);
 
     if(Math.abs(total - 100) > 0.001){
-        throw new Error(`All eight chances must add up to 100%. They currently add up to ${round(total)}%.`);
+        throw new Error(`All eight chances must add up to 100%. They currently add up to ${Math.round(total * 1000) / 1000}%.`);
     }
 
-    state.prizes = next;
+    config.prizes = next;
 }
 
-function round(n){
-    return Math.round(n * 1000) / 1000;
-}
-
-export function resetStats(state){
-    state.stats = emptyStats();
-    state.history = [];
-}
-
-export function restoreDefaultOdds(state){
-    state.prizes = state.prizes.map(p => {
+export function restoreDefaultOdds(config){
+    config.prizes = config.prizes.map(p => {
         const def = DEFAULT_PRIZES.find(d => d.designSlot === p.designSlot);
         return { ...p, chance: def.chance, active: true };
     });
+}
+
+/*
+ * Everything the admin page shows, for one business day.
+ */
+export function buildReport(config, devices, day){
+
+    const today = dayKey();
+    const winPrizes = config.prizes.filter(p => p.type === "win");
+    const nameOf = slot => (config.prizes.find(p => p.designSlot === Number(slot)) || {}).name || `Slice ${slot}`;
+
+    const allDays = new Set([today]);
+    const dayTotals = { spins: 0, wins: 0, losses: 0, outOfStockHits: 0, given: {} };
+    const allTime = { spins: 0, wins: 0, losses: 0, given: {} };
+    const history = [];
+
+    const deviceRows = devices
+        .map(device => {
+
+            Object.keys(device.days).forEach(key => {
+                allDays.add(key);
+                const d = device.days[key];
+                allTime.spins += d.spins;
+                allTime.wins += d.wins;
+                allTime.losses += d.losses;
+                Object.entries(d.given).forEach(([slot, n]) => {
+                    allTime.given[slot] = (allTime.given[slot] || 0) + n;
+                });
+            });
+
+            const d = device.days[day] || emptyDay();
+
+            dayTotals.spins += d.spins;
+            dayTotals.wins += d.wins;
+            dayTotals.losses += d.losses;
+            dayTotals.outOfStockHits += d.outOfStockHits;
+
+            Object.entries(d.given).forEach(([slot, n]) => {
+                dayTotals.given[slot] = (dayTotals.given[slot] || 0) + n;
+            });
+
+            const label = device.name || `Device ${shortCode(device.id)}`;
+
+            d.history.forEach(item => {
+                history.push({
+                    time: item.t,
+                    device: label,
+                    deviceId: device.id,
+                    prize: nameOf(item.s),
+                    type: (config.prizes.find(p => p.designSlot === item.s) || {}).type || "lose",
+                    note: item.u ? `${nameOf(item.u)} out of stock / paused` : ""
+                });
+            });
+
+            return {
+                id: device.id,
+                code: shortCode(device.id),
+                name: device.name,
+                label,
+                blocked: device.blocked,
+                createdAt: device.createdAt,
+                lastSeen: device.lastSeen,
+                spins: d.spins,
+                wins: d.wins,
+                losses: d.losses,
+                prizes: winPrizes.map(p => ({
+                    designSlot: p.designSlot,
+                    given: d.given[p.designSlot] || 0,
+                    stock: p.dailyStock,
+                    left: day === today ? stockLeft(p, d) : null
+                }))
+            };
+        })
+        .sort((a, b) => String(b.lastSeen || "").localeCompare(String(a.lastSeen || "")));
+
+    history.sort((a, b) => b.time.localeCompare(a.time));
+
+    return {
+        config,
+        day,
+        today,
+        nextRefill: nextRefillTime(),
+        refillHour: REFILL_HOUR,
+        days: Array.from(allDays).sort().reverse(),
+        totals: dayTotals,
+        allTime,
+        activeDevices: deviceRows.filter(d => d.spins > 0).length,
+        devices: deviceRows,
+        history: history.slice(0, 5000),
+        historyTotal: history.length
+    };
 }
 
 export function json(body, status = 200){
