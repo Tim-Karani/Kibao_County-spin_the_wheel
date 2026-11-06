@@ -499,7 +499,7 @@ function renderDevices(){
         </tr>`;
 
     $("devicesHint").textContent = isToday
-        ? "Each tablet set up with the setup code counts as one outlet. Gifts shown as given today / daily stock."
+        ? "Every phone or tablet that opens the game counts as one outlet. Gifts shown as given today / daily stock. Use Rename to label them."
         : "Gifts given by each device on the selected day.";
 
     const query = $("deviceSearch").value.trim().toLowerCase();
@@ -509,7 +509,7 @@ function renderDevices(){
 
     if(!rows.length){
         $("deviceRows").innerHTML = `<tr class="empty-row"><td colspan="${prizes.length + 5}">${
-            report.devices.length ? "No devices match your search." : "No devices yet. Open the game on a tablet and enter the setup code."
+            report.devices.length ? "No devices match your search." : "No devices yet. They appear here as soon as the game is opened on a phone or tablet."
         }</td></tr>`;
         return;
     }

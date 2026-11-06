@@ -99,7 +99,7 @@ function resizeWheel(){
     const viewportHeight = window.innerHeight;
 
     // Reserve room for the visible SPIN THE WHEEL button beneath the artwork.
-    const availableHeight = Math.max(320, viewportHeight - 105);
+    const availableHeight = Math.max(320, viewportHeight - 130);
     const maxSize = Math.min(viewportWidth, availableHeight) * 0.94;
     wheelSize = Math.max(260, Math.floor(Math.min(maxSize, 980)));
 

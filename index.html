@@ -39,19 +39,13 @@
 
     </main>
 
-    <!-- One-time device setup (shown only until this tablet is registered). -->
-    <div class="setup-overlay hidden" id="setupScreen">
-        <form class="setup-card" id="setupForm" autocomplete="off">
+    <!-- Shown only if the admin has disabled this device. -->
+    <div class="setup-overlay hidden" id="blockedScreen" role="alertdialog" aria-labelledby="blockedTitle">
+        <div class="setup-card">
             <img src="assets/images/logo/kk.png" alt="" class="setup-logo">
-            <h1 id="setupTitle">Set up this device</h1>
-            <p id="setupText">Enter the setup code from your team leader. You only need to do this once on this tablet.</p>
-            <label for="setupCode">Setup code</label>
-            <input id="setupCode" type="text" inputmode="text" autocapitalize="characters" spellcheck="false" required>
-            <label for="setupName">Device name <span>(optional)</span></label>
-            <input id="setupName" type="text" maxlength="60" placeholder="e.g. Tablet 3 – Nairobi North">
-            <button type="submit" id="setupBtn">Start</button>
-            <p class="setup-error" id="setupError" role="alert"></p>
-        </form>
+            <h1 id="blockedTitle">This device is disabled</h1>
+            <p>This device has been switched off by the admin. Please contact your team leader.</p>
+        </div>
     </div>
 
     <div class="popup-overlay hidden" id="winnerPopup">

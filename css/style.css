@@ -100,38 +100,103 @@ body{
     border-top:21px solid #DB1212;
 }
 
-/* Hidden from the visual composition: wheel itself is the interaction. */
+/* ==========================================================
+   SPIN BUTTON
+   Gold, bevelled pill to match the wheel's gold ring, with a
+   light sweep that invites a tap.
+========================================================== */
+
 #spinBtn{
     position:relative;
     z-index:30;
-    min-width:210px;
-    padding:14px 30px;
-    border:2px solid #ffffff;
+    overflow:hidden;
+    min-width:250px;
+    padding:16px 40px 17px;
+    border:3px solid #6f4c0b;
     border-radius:999px;
-    background:#000000;
-    color:#ffffff;
-    font-size:14px;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 48%, rgba(0,0,0,0) 52%, rgba(90,55,0,.25) 100%),
+        linear-gradient(110deg, #fff1b8 0%, #e2b23a 20%, #a87410 42%, #f6d873 58%, #c9971c 78%, #fbe7a1 100%);
+    color:#5a0c24;
+    font-family:"Arial Black", "Helvetica Neue", Arial, sans-serif;
+    font-size:17px;
     font-weight:900;
-    letter-spacing:.08em;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    text-shadow:0 1px 0 rgba(255,245,210,.85);
     cursor:pointer;
-    box-shadow:0 8px 24px rgba(0,0,0,.45);
-    transition:transform .15s ease, background .15s ease, color .15s ease;
+    box-shadow:
+        0 0 0 3px #000000,
+        0 0 0 5px rgba(243,187,23,.55),
+        0 0 26px rgba(243,187,23,.45),
+        inset 0 2px 1px rgba(255,255,255,.75),
+        inset 0 -3px 2px rgba(90,55,0,.45),
+        0 8px 18px rgba(0,0,0,.6);
+    transition:transform .12s ease, box-shadow .2s ease, filter .2s ease;
     -webkit-tap-highlight-color:transparent;
+    animation:spinBtnPulse 2.4s ease-in-out infinite;
+}
+
+/* Moving shine across the gold. */
+#spinBtn::after{
+    content:"";
+    position:absolute;
+    top:-20%;
+    left:-60%;
+    width:40%;
+    height:140%;
+    background:linear-gradient(100deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.75) 50%, rgba(255,255,255,0) 100%);
+    transform:skewX(-20deg);
+    animation:spinBtnShine 3s ease-in-out infinite;
+    pointer-events:none;
 }
 
 #spinBtn:hover:not(:disabled){
-    background:#ffffff;
-    color:#000000;
+    filter:brightness(1.08) saturate(1.1);
     transform:translateY(-2px);
 }
 
 #spinBtn:active:not(:disabled){
-    transform:translateY(0) scale(.98);
+    transform:translateY(2px) scale(.98);
+    box-shadow:
+        0 0 0 3px #000000,
+        0 0 0 5px rgba(243,187,23,.55),
+        0 0 14px rgba(243,187,23,.35),
+        inset 0 3px 6px rgba(90,55,0,.5),
+        0 3px 8px rgba(0,0,0,.6);
 }
 
+#spinBtn:focus-visible{
+    outline:3px solid #ffffff;
+    outline-offset:6px;
+}
+
+/* While the wheel is turning. */
 #spinBtn:disabled{
-    opacity:.45;
-    cursor:not-allowed;
+    cursor:wait;
+    filter:saturate(.55) brightness(.8);
+    animation:none;
+}
+
+#spinBtn:disabled::after{
+    animation:none;
+    opacity:0;
+}
+
+@keyframes spinBtnShine{
+    0%, 55%{ left:-60%; }
+    100%{ left:130%; }
+}
+
+/* Uses the separate "scale" property so it doesn't fight the
+   hover/press transforms. */
+@keyframes spinBtnPulse{
+    0%, 100%{ scale:1; }
+    50%{ scale:1.035; }
+}
+
+@media (prefers-reduced-motion: reduce){
+    #spinBtn, #spinBtn::after{ animation:none; }
 }
 
 
@@ -290,9 +355,9 @@ body{
     }
 
     #spinBtn{
-        min-width:190px;
-        padding:12px 24px;
-        font-size:13px;
+        min-width:220px;
+        padding:14px 30px 15px;
+        font-size:15px;
     }
 
     .popup-message{
@@ -316,7 +381,7 @@ body{
 }
 
 /* ==========================================================
-   ONE-TIME DEVICE SETUP
+   DISABLED-DEVICE MESSAGE
 ========================================================== */
 
 .setup-overlay{
@@ -368,63 +433,4 @@ body{
     margin-bottom:6px;
 }
 
-.setup-card label{
-    font-size:14px;
-    font-weight:700;
-    margin-top:6px;
-}
 
-.setup-card label span{
-    font-weight:400;
-    color:#777777;
-}
-
-.setup-card input{
-    padding:13px 14px;
-    border:1.5px solid #dddddd;
-    border-radius:12px;
-    font-size:16px;
-}
-
-#setupCode{
-    text-transform:uppercase;
-    letter-spacing:.12em;
-    font-weight:700;
-}
-
-.setup-card input:focus{
-    outline:2px solid #F3BB17;
-    border-color:#771030;
-}
-
-#setupBtn{
-    margin-top:12px;
-    padding:14px;
-    border:0;
-    border-radius:999px;
-    background:#771030;
-    color:#ffffff;
-    font-size:15px;
-    font-weight:900;
-    letter-spacing:.06em;
-    cursor:pointer;
-}
-
-#setupBtn:disabled{
-    opacity:.5;
-    cursor:wait;
-}
-
-.setup-card .setup-error{
-    min-height:20px;
-    color:#DB1212;
-    font-size:14px;
-    font-weight:700;
-    text-align:center;
-}
-
-.setup-card.blocked input,
-.setup-card.blocked label,
-.setup-card.blocked #setupBtn{
-    display:none;
-}

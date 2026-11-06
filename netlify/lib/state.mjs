@@ -365,25 +365,6 @@ export function checkPassword(request){
     return { ok: true };
 }
 
-/* Setup code check: not case sensitive, spaces ignored, so it is
-   easy to type on a tablet. */
-export function checkSetupCode(code){
-
-    const expected = process.env.SETUP_CODE || "";
-
-    if(!expected){
-        return { ok: false, status: 503, error: "SETUP_CODE has not been set in Netlify." };
-    }
-
-    const clean = value => String(value || "").replace(/\s+/g, "").toUpperCase();
-
-    if(!safeEqual(clean(code), clean(expected))){
-        return { ok: false, status: 401, error: "That setup code is not correct." };
-    }
-
-    return { ok: true };
-}
-
 export function applyPrizeEdits(config, edits){
 
     if(!Array.isArray(edits)){

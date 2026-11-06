@@ -25,15 +25,11 @@ A spin-the-wheel game for County Kibao weekend activations. Every result is draw
 
 > The wheel artwork is `assets/images/wheel-reference.jpg`. To change it, replace that file with a square image of the full wheel, with the same slice positions (the wheel filling the image, slice edges on the vertical, horizontal and diagonal lines through the centre).
 
-## Setting up a tablet (once per device)
+## Devices
 
-1. Open the game link on the tablet.
-2. Enter the **setup code** (from Netlify, see below). Optionally type a name such as "Tablet 3 – Nairobi North".
-3. Tap **Start**. The tablet remembers it, so staff never type the code again.
-
-Tips:
-- Use the tablet's normal browser (not private/incognito mode), and don't clear its browsing data. Otherwise it forgets it was set up and counts as a new device.
-- Customers who open the link on their own phones can't spin without the setup code.
+- There is nothing to set up. The first time a phone or tablet opens the game link, it registers itself automatically and appears on the admin page as one outlet (e.g. "Device 3F2A"). Use **Rename** on the admin page to label it, e.g. "Tablet 3 – Nairobi North".
+- Use the device's normal browser (not private/incognito mode), and don't clear its browsing data. Otherwise it is treated as a new device with a fresh daily stock.
+- Anyone who opens the link (for example the client checking the game) also counts as a device. Their spins appear in the stats; use **Disable** on the admin page for any device that shouldn't be playing. Share the link only with brand ambassadors.
 
 ## Admin page
 
@@ -50,16 +46,13 @@ Tips:
 
 ## Netlify settings
 
-Two environment variables (Project configuration → Environment variables → Add a variable):
+One environment variable (Project configuration → Environment variables → Add a variable):
 
 | Key | What it is |
 |---|---|
 | `ADMIN_PASSWORD` | Password for the admin page |
-| `SETUP_CODE` | Code staff type once on each tablet (e.g. `KIBAO2026`). Not case sensitive. |
 
-After adding or changing a variable: **Deploys → Trigger deploy → Deploy project**.
-
-Changing `SETUP_CODE` later does not log out tablets that are already set up; it only affects new ones.
+After adding or changing it: **Deploys → Trigger deploy → Deploy project**.
 
 ## Deploying updates
 
@@ -70,11 +63,11 @@ Each tablet needs an internet connection to spin. If it can't reach the server, 
 ## Project layout
 
 ```
-index.html              Player page (with one-time setup screen)
+index.html              Player page
 admin.html              Admin page
 css/                    Styles
 js/wheel.js             Wheel drawing, gold ring and spin animation
-js/app.js               Player controller: device setup, asks the server for each result
+js/app.js               Player controller: registers the device, asks the server for each result
 js/popup.js             Result popup
 js/sounds.js            Sound playback and mute button
 js/admin.js             Admin dashboard

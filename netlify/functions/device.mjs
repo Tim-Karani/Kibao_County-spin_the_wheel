@@ -1,10 +1,10 @@
 /*
  * POST /api/device
- *   { action: "register", code, name }  -> one-time setup of a tablet
+ *   { action: "register" }              -> registers a new device automatically
  *   { action: "check", deviceId }       -> is this device still valid?
  */
 
-import { checkSetupCode, createDevice, readDevice, shortCode, json } from "../lib/state.mjs";
+import { createDevice, readDevice, shortCode, json } from "../lib/state.mjs";
 
 export default async function handler(request){
 
@@ -24,14 +24,6 @@ export default async function handler(request){
     try{
 
         if(body.action === "register"){
-
-            const check = checkSetupCode(body.code);
-
-            if(!check.ok){
-                // Slow down code guessing.
-                await new Promise(resolve => setTimeout(resolve, 800));
-                return json({ error: check.error }, check.status);
-            }
 
             const device = await createDevice(body.name);
 

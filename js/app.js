@@ -3,7 +3,7 @@
    APPLICATION CONTROLLER
 
    The result of every spin is drawn on the Netlify server
-   (/api/spin), so all devices share the same odds and stock.
+   (/api/spin). Each device is one outlet with its own daily stock.
 ========================================================== */
 
 "use strict";
@@ -75,15 +75,19 @@ function setBusy(busy){
 
     if(spinButton){
         spinButton.disabled = busy;
+        spinButton.textContent = busy ? "Spinning…" : "Spin the wheel";
     }
 }
 
 /* ==========================================================
-   DEVICE SETUP
-   Each tablet registers once with the setup code. Its ID is kept
-   in this browser (local storage, plus a cookie as a backup), and
-   the server counts it as one outlet with its own daily stock.
+   DEVICE ID
+   Each phone or tablet registers itself automatically the first
+   time it opens the game (nothing to type). Its ID is kept in this
+   browser (local storage, plus a cookie as a backup), and the server
+   counts it as one outlet with its own daily stock.
 ========================================================== */
+
+let registering = null;
 
 function readDeviceId(){
 
@@ -130,18 +134,38 @@ function forgetDeviceId(){
     deviceId = "";
 }
 
-function initializeDevice(){
+/* Returns this device's ID, registering it silently if needed. */
+function ensureDevice(){
 
-    const form = document.getElementById("setupForm");
-
-    if(form){
-        form.addEventListener("submit", onSetupSubmit);
+    if(deviceId){
+        return Promise.resolve(deviceId);
     }
+
+    if(!registering){
+        registering = postJson(DEVICE_ENDPOINT, { action: "register" })
+            .then(function(data){
+                if(!data.deviceId){
+                    throw new Error(data.error || "Could not register this device.");
+                }
+                deviceId = data.deviceId;
+                storeDeviceId(deviceId);
+                return deviceId;
+            })
+            .finally(function(){
+                registering = null;
+            });
+    }
+
+    return registering;
+}
+
+function initializeDevice(){
 
     deviceId = readDeviceId();
 
     if(!deviceId){
-        showSetupScreen();
+        // Register in the background so the first spin is instant.
+        ensureDevice().catch(function(){});
         return;
     }
 
@@ -151,7 +175,7 @@ function initializeDevice(){
         .then(function(data){
             if(data.status === "setup"){
                 forgetDeviceId();
-                showSetupScreen();
+                ensureDevice().catch(function(){});
             }
             else if(data.status === "blocked"){
                 showBlockedScreen();
@@ -160,79 +184,12 @@ function initializeDevice(){
         .catch(function(){});
 }
 
-function showSetupScreen(){
-
-    const screen = document.getElementById("setupScreen");
-    const card = document.getElementById("setupForm");
-
-    if(!screen){
-        return;
-    }
-
-    card.classList.remove("blocked");
-    document.getElementById("setupTitle").textContent = "Set up this device";
-    document.getElementById("setupText").textContent =
-        "Enter the setup code from your team leader. You only need to do this once on this tablet.";
-    document.getElementById("setupError").textContent = "";
-    screen.classList.remove("hidden");
-
-    setTimeout(function(){
-        const input = document.getElementById("setupCode");
-        if(input){
-            input.focus();
-        }
-    }, 300);
-}
-
 function showBlockedScreen(){
 
-    const screen = document.getElementById("setupScreen");
+    const screen = document.getElementById("blockedScreen");
 
-    if(!screen){
-        return;
-    }
-
-    document.getElementById("setupForm").classList.add("blocked");
-    document.getElementById("setupTitle").textContent = "This device is disabled";
-    document.getElementById("setupText").textContent =
-        "This tablet has been switched off by the admin. Please contact your team leader.";
-    document.getElementById("setupError").textContent = "";
-    screen.classList.remove("hidden");
-}
-
-async function onSetupSubmit(event){
-
-    event.preventDefault();
-
-    const button = document.getElementById("setupBtn");
-    const error = document.getElementById("setupError");
-    const code = document.getElementById("setupCode").value;
-    const name = document.getElementById("setupName").value;
-
-    if(!code.trim()){
-        return;
-    }
-
-    button.disabled = true;
-    error.textContent = "";
-
-    try{
-        const data = await postJson(DEVICE_ENDPOINT, { action: "register", code: code, name: name });
-
-        if(!data.deviceId){
-            throw new Error(data.error || "Could not set up this device.");
-        }
-
-        deviceId = data.deviceId;
-        storeDeviceId(deviceId);
-        document.getElementById("setupScreen").classList.add("hidden");
-        document.getElementById("setupCode").value = "";
-    }
-    catch(err){
-        error.textContent = err.message || "Could not set up this device. Check the internet and try again.";
-    }
-    finally{
-        button.disabled = false;
+    if(screen){
+        screen.classList.remove("hidden");
     }
 }
 
@@ -304,10 +261,6 @@ async function startSpin(){
         return;
     }
 
-    if(!deviceId){
-        showSetupScreen();
-        return;
-    }
 
     setBusy(true);
 
@@ -318,17 +271,24 @@ async function startSpin(){
     let result = null;
 
     try{
-        result = await requestSpin();
+        await ensureDevice();
+
+        try{
+            result = await requestSpin();
+        }
+        catch(error){
+            // Device record missing on the server: register again, retry once.
+            if(error.code !== "setup"){
+                throw error;
+            }
+            forgetDeviceId();
+            await ensureDevice();
+            result = await requestSpin();
+        }
     }
     catch(error){
         console.error("Spin request failed:", error);
         setBusy(false);
-
-        if(error.code === "setup"){
-            forgetDeviceId();
-            showSetupScreen();
-            return;
-        }
 
         if(error.code === "blocked"){
             showBlockedScreen();
