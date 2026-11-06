@@ -23,7 +23,7 @@ A spin-the-wheel game for County Kibao weekend activations. Every result is draw
 - When a device has given out its daily stock of a gift (or the gift is paused), anyone on that device who would have won it gets **Try Again**. The other gifts keep their own odds.
 - Odds and daily stock can be changed on the admin page. They apply to every device.
 
-> The County T-Shirt uses slice 5. Until the new artwork is added, that slice still shows the old Wristband picture. Replace `assets/images/wheel-reference.png` with the updated wheel artwork (same size and slice positions) to change it.
+> The wheel artwork is `assets/images/wheel-reference.jpg`. To change it, replace that file with a square image of the full wheel, with the same slice positions (the wheel filling the image, slice edges on the vertical, horizontal and diagonal lines through the centre).
 
 ## Setting up a tablet (once per device)
 

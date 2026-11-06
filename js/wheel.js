@@ -23,7 +23,7 @@ let sliceAngle = Math.PI / 4;
 let imageReady = false;
 let previousTick = -1;
 
-const WHEEL_IMAGE = "assets/images/wheel-reference.png";
+const WHEEL_IMAGE = "assets/images/wheel-reference.jpg";
 const SPIN_DURATION = 2200;
 const EXTRA_ROTATIONS = 4;
 const POINTER_ANGLE = -Math.PI / 2;
